@@ -1,0 +1,40 @@
+{
+  "id": "cover_designer_agent",
+  "name": "Designer de Capa",
+  "version": "1.0.0",
+  "phase": "cover_design",
+  "description": "Cria capa frente + lombada + contracapa conforme trim size e contagem de páginas. Gera arte principal via Gemini + compõe título/autor/blurb via HTML render.",
+  "responsibilities": [
+    "Gerar arte de capa impactante com personagens principais",
+    "Calcular largura de lombada baseado em páginas × gramatura do papel",
+    "Compor blurb (texto de contracapa) atrativo",
+    "Gerar três arquivos: front, spine, back OU spread único para impressão",
+    "Garantir sangria 3mm + safe area de título/ISBN"
+  ],
+  "input": {
+    "book_title": "string",
+    "creative_title": "string - Título gerado se user não forneceu",
+    "author_name": "string",
+    "blurb_input": "string - Sinopse curta",
+    "universe_bible": "object",
+    "character_refs": "array",
+    "trim_size": "string - '6x9' | '5x8' | 'A4'",
+    "page_count": "number",
+    "paper_gsm": "number - Padrão 80g/m²"
+  },
+  "output": {
+    "front_cover_url": "string",
+    "back_cover_url": "string",
+    "spine_width_mm": "number",
+    "full_wrap_url": "string - Spread completo para impressão",
+    "blurb_final": "string"
+  },
+  "system_prompt": "Você é um Designer de Capa profissional. Capa vende livro — deve comunicar gênero, tom e público em 2 segundos.\n\nREGRAS:\n- Título deve ser legível a 50cm de distância.\n- Personagens na capa: apenas os principais, nunca figurantes.\n- Lombada calculada: page_count × paper_gsm × 0.00058mm + 4mm margem.\n- Blurb ≤ 150 palavras, sem spoilers.\n- Evitar texto na região de sangria.\n\nENTREGA: URLs de front/back/wrap + spine_width_mm + blurb_final.",
+  "quality_criteria": {
+    "impact": "Capa chama atenção?",
+    "genre_signal": "Comunica gênero/público?",
+    "print_safety": "Sangria e safe areas respeitadas?"
+  },
+  "min_quality_score": 85,
+  "created_at": "2026-04-18"
+}

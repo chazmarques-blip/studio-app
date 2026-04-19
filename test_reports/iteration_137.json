@@ -1,0 +1,178 @@
+{
+  "summary": "Iteration 137: BookFactory Pipeline Backend Testing. Tested all BookFactory endpoints for the new parallel book generation pipeline. 21/26 tests passed, 5 skipped (LLM tests skipped due to Emergent proxy authentication issue). Core functionality working: trim-sizes, compositions, book/start, composition resolver, validation, backward compatibility.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/studio/projects/{id}/book/generate-outline",
+        "issue": "Emergent LLM proxy authentication failing - litellm.AuthenticationError: OpenAIException - Invalid API key. The emergentintegrations library is using custom_llm_provider='openai' for Claude models which causes authentication to fail.",
+        "priority": "CRITICAL",
+        "root_cause": "In emergentintegrations/llm/chat.py line 110, when using Emergent key, it sets custom_llm_provider='openai' but the model is claude-sonnet-4-20250514. This causes LiteLLM to try OpenAI authentication for a Claude model.",
+        "affected_endpoints": [
+          "/book/generate-outline",
+          "/book/generate-chapter",
+          "/book/plan-illustrations",
+          "/book/proofread"
+        ]
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "Various",
+        "issue": "Intermittent Supabase connection issues (httpx.RemoteProtocolError: Server disconnected) causing sporadic 500 errors",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "notes": ["Frontend testing not requested - backend only testing performed"]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration137_book_factory.py",
+    "/app/test_reports/pytest/pytest_results_iteration137.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix Emergent LLM proxy authentication for Claude models. The emergentintegrations library needs to be updated to properly handle Anthropic models when using Emergent keys.",
+    "Alternative: Consider using direct Anthropic API calls with ANTHROPIC_API_KEY instead of emergentintegrations for BookFactory LLM calls",
+    "Monitor Supabase connection stability - intermittent disconnections observed"
+  ],
+  "critical_code_review_comments": [
+    "VERIFIED: GET /api/studio/book/trim-sizes returns 4 trim sizes (6x9, 5x8, A4, A5) + 9 visual tracks",
+    "VERIFIED: GET /api/studio/book/compositions returns registry with all expected compositions and resolver.fallback",
+    "VERIFIED: POST /book/start correctly validates trim_size and illustration_track (returns 400 for invalid values)",
+    "VERIFIED: POST /book/start correctly resolves composition_key for all modes (book_infantil_ilustrado_user_author, book_infantil_ilustrado_public_domain, book_romance_adulto_user_author, book_tecnico_historico_public_domain, both_parallel, video_only)",
+    "VERIFIED: POST /book/start is idempotent - calling twice works correctly",
+    "VERIFIED: POST /book/approve-outline returns 400 when no outline exists",
+    "VERIFIED: POST /book/plan-illustrations returns skipped:true when illustration_track=none",
+    "VERIFIED: POST /book/render-pdf returns 400 when no chapters exist",
+    "VERIFIED: POST /book/preflight returns 400 when no PDF exists",
+    "VERIFIED: GET /book/state returns book_bible state correctly",
+    "VERIFIED: Backward compatibility - video pipeline endpoints still work (POST /api/studio/projects, GET /api/studio/projects)",
+    "VERIFIED: book_factory.py is registered in __init__.py (line 27)",
+    "NOT TESTED: LLM endpoints (generate-outline, generate-chapter, proofread) due to Emergent proxy auth failure",
+    "NOT TESTED: PDF rendering with actual chapters (requires working LLM)",
+    "NOT TESTED: Preflight checks on actual PDF (requires working LLM + PDF render)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration137_book_factory.py"
+  ],
+  "success_rate": {
+    "backend": "81% (21/26 tests passed, 5 skipped due to LLM auth issue)",
+    "frontend": "N/A - backend only testing"
+  },
+  "test_credentials": {
+    "email": "test@studiox.com",
+    "password": "studiox123"
+  },
+  "seed_data_creation": "Tests create and cleanup their own test projects with BookFactoryTest_ prefix",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "BookFactory core endpoints are working. The main blocker is the Emergent LLM proxy authentication issue. Once fixed, the LLM-dependent endpoints (generate-outline, generate-chapter, plan-illustrations, proofread, render-pdf with chapters, preflight with PDF) need to be retested. The emergentintegrations library v0.1.0 has a bug where it sets custom_llm_provider='openai' for all non-Gemini models when using Emergent keys, which breaks Claude model calls.",
+  "verified_features": {
+    "trim_sizes_endpoint": {
+      "status": "WORKING",
+      "details": "Returns 4 trim sizes (6x9, 5x8, A4, A5) with dimensions in mm + 9 visual tracks"
+    },
+    "compositions_endpoint": {
+      "status": "WORKING",
+      "details": "Returns all compositions with agents list and resolver.fallback"
+    },
+    "book_start": {
+      "status": "WORKING",
+      "details": "Saves brief, resolves composition_key, validates inputs, idempotent"
+    },
+    "composition_resolver": {
+      "status": "WORKING",
+      "details": "All 6 composition keys resolve correctly based on output_mode, format_preset, autoria_mode"
+    },
+    "input_validation": {
+      "status": "WORKING",
+      "details": "Invalid trim_size and illustration_track return 400 with helpful error messages"
+    },
+    "approve_outline": {
+      "status": "WORKING",
+      "details": "Returns 400 when no outline exists (guard working)"
+    },
+    "plan_illustrations_skip": {
+      "status": "WORKING",
+      "details": "Returns skipped:true when illustration_track=none"
+    },
+    "render_pdf_guard": {
+      "status": "WORKING",
+      "details": "Returns 400 when no chapters exist"
+    },
+    "preflight_guard": {
+      "status": "WORKING",
+      "details": "Returns 400 when no PDF exists"
+    },
+    "book_state": {
+      "status": "WORKING",
+      "details": "Returns book_bible state correctly"
+    },
+    "backward_compatibility": {
+      "status": "WORKING",
+      "details": "Video pipeline endpoints unaffected"
+    },
+    "generate_outline": {
+      "status": "BLOCKED",
+      "details": "Emergent LLM proxy authentication failing"
+    },
+    "generate_chapter": {
+      "status": "BLOCKED",
+      "details": "Emergent LLM proxy authentication failing"
+    },
+    "plan_illustrations_llm": {
+      "status": "BLOCKED",
+      "details": "Emergent LLM proxy authentication failing"
+    },
+    "proofread": {
+      "status": "BLOCKED",
+      "details": "Emergent LLM proxy authentication failing"
+    },
+    "render_pdf_full": {
+      "status": "NOT_TESTED",
+      "details": "Requires working LLM to generate chapters first"
+    },
+    "preflight_full": {
+      "status": "NOT_TESTED",
+      "details": "Requires working PDF to run preflight checks"
+    }
+  },
+  "api_endpoints_tested": [
+    {"endpoint": "GET /api/health", "status": "200 OK"},
+    {"endpoint": "POST /api/auth/login", "status": "200 OK"},
+    {"endpoint": "GET /api/studio/book/trim-sizes", "status": "200 OK"},
+    {"endpoint": "GET /api/studio/book/compositions", "status": "200 OK"},
+    {"endpoint": "POST /api/studio/projects", "status": "200 OK"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/start (valid)", "status": "200 OK"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/start (invalid trim_size)", "status": "400 Bad Request"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/start (invalid illustration_track)", "status": "400 Bad Request"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/approve-outline (no outline)", "status": "400 Bad Request"},
+    {"endpoint": "GET /api/studio/projects/{id}/book/state", "status": "200 OK"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/generate-outline", "status": "502 - Emergent LLM auth failure"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/plan-illustrations (no chapters)", "status": "400 Bad Request"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/plan-illustrations (track=none)", "status": "200 OK (skipped:true)"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/render-pdf (no chapters)", "status": "400 Bad Request"},
+    {"endpoint": "POST /api/studio/projects/{id}/book/preflight (no PDF)", "status": "400 Bad Request"},
+    {"endpoint": "GET /api/studio/projects", "status": "200 OK"},
+    {"endpoint": "DELETE /api/studio/projects/{id}", "status": "200 OK"}
+  ],
+  "rca_of_the_issue": {
+    "issue": "Emergent LLM proxy authentication failure for Claude models",
+    "reproduction_steps": [
+      "1. Call any BookFactory LLM endpoint (e.g., /book/generate-outline)",
+      "2. The emergentintegrations library detects sk-emergent- key prefix",
+      "3. It sets api_base to Emergent proxy and custom_llm_provider='openai'",
+      "4. LiteLLM tries to call Claude model through OpenAI-compatible endpoint",
+      "5. Authentication fails with 'Invalid API key'"
+    ],
+    "root_cause": "emergentintegrations/llm/chat.py line 110 sets custom_llm_provider='openai' for all non-Gemini models when using Emergent keys. This is incorrect for Anthropic models.",
+    "mitigation_options": [
+      "Option 1: Update emergentintegrations library to handle Anthropic models correctly",
+      "Option 2: Use direct Anthropic API calls with ANTHROPIC_API_KEY in book_factory.py",
+      "Option 3: Use litellm directly with proper model prefix (anthropic/claude-sonnet-4-20250514)"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "description": "Composições dinâmicas da Meeting Room baseadas em output_mode + autoria_mode + illustration_track.",
+  "compositions": {
+    "book_infantil_ilustrado_user_author": {
+      "agents": ["orchestrator_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "orchestrator_agent"
+    },
+    "book_infantil_ilustrado_public_domain": {
+      "agents": ["orchestrator_agent", "researcher_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "researcher_agent"
+    },
+    "book_infantil_ilustrado_free": {
+      "agents": ["orchestrator_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "author_agent"
+    },
+    "book_romance_adulto_user_author": {
+      "agents": ["orchestrator_agent", "author_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "author_agent"
+    },
+    "book_tecnico_historico_public_domain": {
+      "agents": ["orchestrator_agent", "researcher_agent", "author_agent", "art_director_editorial_agent", "illustrator_interior_agent", "cover_designer_agent", "book_editor_agent", "proofreader_agent", "layout_designer_agent", "preflight_agent"],
+      "leader": "researcher_agent"
+    },
+    "video_only": {
+      "agents": ["orchestrator_agent", "researcher_agent", "screenwriter_agent", "visual_researcher_agent", "dialogue_writer_agent", "sound_designer_agent", "consistency_checker_agent", "quality_validator_agent"],
+      "leader": "orchestrator_agent",
+      "note": "Mantido idêntico ao fluxo anterior — não alterar."
+    },
+    "both_parallel": {
+      "agents": ["orchestrator_agent", "researcher_agent", "screenwriter_agent", "author_agent", "visual_researcher_agent", "art_director_editorial_agent", "consistency_checker_agent"],
+      "leader": "orchestrator_agent",
+      "note": "Meeting room unificada gera Universe Bible compartilhada. Depois, sub-rooms específicas rodam em paralelo para vídeo e livro."
+    }
+  },
+  "resolver": {
+    "algorithm": "composition_key = f\"{output_mode}_{format_preset}_{autoria_mode}\"",
+    "fallback": "book_infantil_ilustrado_user_author"
+  }
+}

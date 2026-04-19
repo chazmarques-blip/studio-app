@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="{{ book.language }}">
+<head>
+<meta charset="UTF-8" />
+<title>{{ book.title }}</title>
+<style>
+  @page {
+    size: {{ trim.width }}mm {{ trim.height }}mm;
+    margin: {{ layout.margins_mm.top }}mm {{ layout.margins_mm.outer }}mm {{ layout.margins_mm.bottom }}mm {{ layout.margins_mm.inner }}mm;
+    bleed: 3mm;
+    marks: crop cross;
+    {% if layout.show_running_headers %}
+    @top-left { content: string(book-title); font-size: 9pt; font-style: italic; color: #555; }
+    @top-right { content: string(chapter-title); font-size: 9pt; font-style: italic; color: #555; }
+    {% endif %}
+    @bottom-center { content: counter(page); font-size: 10pt; color: #333; }
+  }
+  @page :first { @top-left { content: ""; } @top-right { content: ""; } @bottom-center { content: ""; } }
+
+  html, body {
+    font-family: {{ layout.font_family }};
+    font-size: {{ layout.font_size_pt }}pt;
+    line-height: {{ layout.line_height }};
+    color: #111;
+    hyphens: {{ layout.hyphens }};
+    text-align: justify;
+    orphans: {{ layout.orphans }};
+    widows: {{ layout.widows }};
+  }
+
+  .cover {
+    page-break-after: always;
+    margin: -{{ layout.margins_mm.top }}mm -{{ layout.margins_mm.outer }}mm -{{ layout.margins_mm.bottom }}mm -{{ layout.margins_mm.inner }}mm;
+    width: {{ trim.width + 6 }}mm;
+    height: {{ trim.height + 6 }}mm;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    color: #fff;
+    string-set: book-title "{{ book.title }}";
+  }
+  .cover-title {
+    position: absolute;
+    bottom: 30mm;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 36pt;
+    font-weight: 800;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    padding: 0 20mm;
+  }
+  .cover-subtitle {
+    position: absolute;
+    bottom: 18mm;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 14pt;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  }
+  .cover-author {
+    position: absolute;
+    bottom: 8mm;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 12pt;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  }
+
+  .title-page {
+    page-break-after: always;
+    text-align: center;
+    padding-top: 40mm;
+  }
+  .title-page h1 { font-size: 28pt; font-weight: 700; margin-bottom: 12mm; }
+  .title-page h2 { font-size: 14pt; font-style: italic; color: #555; margin-bottom: 30mm; }
+  .title-page .author { font-size: 12pt; letter-spacing: 1.5px; text-transform: uppercase; }
+
+  .copyright-page {
+    page-break-after: always;
+    font-size: 9pt;
+    color: #555;
+    padding-top: 80%;
+  }
+
+  .chapter {
+    {% if layout.chapter_start_recto %}
+    page-break-before: right;
+    {% else %}
+    page-break-before: always;
+    {% endif %}
+    string-set: chapter-title attr(data-title);
+  }
+
+  .chapter h2 {
+    font-size: {{ (layout.font_size_pt * 2) | round(0) }}pt;
+    font-weight: 700;
+    text-align: left;
+    margin-top: 30mm;
+    margin-bottom: 14mm;
+    page-break-after: avoid;
+  }
+
+  .chapter p { margin: 0 0 0.5em 0; text-indent: 1.2em; }
+  .chapter p:first-of-type { text-indent: 0; }
+
+  {% if layout.drop_cap %}
+  .chapter p:first-of-type::first-letter {
+    font-size: {{ (layout.font_size_pt * 3) | round(0) }}pt;
+    font-weight: 700;
+    line-height: 1;
+    padding-right: 2pt;
+  }
+  {% endif %}
+
+  figure.illustration {
+    page-break-inside: avoid;
+    text-align: center;
+    margin: 10mm 0;
+  }
+  figure.illustration.full-page {
+    page-break-before: always;
+    page-break-after: always;
+    margin: 0;
+  }
+  figure.illustration img {
+    max-width: 100%;
+    max-height: 160mm;
+  }
+  figure.illustration.full-page img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  figure.illustration.spot img { max-width: 60%; }
+</style>
+</head>
+<body>
+
+{% if cover.front_url %}
+<section class="cover" style="background-image: url('{{ cover.front_url }}');">
+  <div class="cover-title">{{ cover.title or book.title }}</div>
+  {% if cover.subtitle %}<div class="cover-subtitle">{{ cover.subtitle }}</div>{% endif %}
+  {% if cover.author_name %}<div class="cover-author">{{ cover.author_name }}</div>{% endif %}
+</section>
+{% endif %}
+
+<section class="title-page">
+  <h1>{{ book.title }}</h1>
+  {% if book.subtitle %}<h2>{{ book.subtitle }}</h2>{% endif %}
+  {% if book.author %}<p class="author">{{ book.author }}</p>{% endif %}
+</section>
+
+<section class="copyright-page">
+  <p>&copy; {{ book.author or 'Todos os direitos reservados' }}. Impresso via BookFactory — Studio X.</p>
+</section>
+
+{% for ch in chapters %}
+<section class="chapter" data-title="{{ ch.title }}">
+  <h2>{{ ch.title }}</h2>
+  {%- set chapter_illus = illustrations_by_chapter.get(ch.index, []) -%}
+  {%- for illus in chapter_illus if illus.type == 'full' and illus.illustration_url -%}
+    <figure class="illustration full-page">
+      <img src="{{ illus.illustration_url }}" alt="" />
+    </figure>
+  {%- endfor -%}
+  {% set paragraphs = ch.prose.split('\n\n') %}
+  {% for p in paragraphs %}
+    {% if p.strip() and not p.strip().startswith('##') %}
+      <p>{{ p.strip() | replace('\n', ' ') }}</p>
+    {% endif %}
+  {% endfor %}
+</section>
+{% endfor %}
+
+</body>
+</html>

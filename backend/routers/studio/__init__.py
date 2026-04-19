@@ -24,5 +24,6 @@ from . import scene_reorder  # NEW
 from . import scene_regenerate  # NEW - Scene regeneration
 from . import kling_storyboard  # NEW - Kling 30-frame storyboards
 from . import sora_characters  # NEW - Sora 2 Characters API for voice/appearance consistency
+from . import book_factory  # NEW - BookFactory: parallel book generation pipeline (WeasyPrint)
 
 __all__ = ["router", "_cleanup_stale_storyboards"]

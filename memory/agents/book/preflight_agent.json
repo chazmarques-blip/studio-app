@@ -1,0 +1,44 @@
+{
+  "id": "preflight_agent",
+  "name": "Pré-Impressão",
+  "version": "1.0.0",
+  "phase": "preflight",
+  "description": "Valida PDF final contra requisitos de gráfica profissional: PDF/X, CMYK, 300dpi, sangria 3mm, fontes embutidas, páginas múltiplas de 4.",
+  "responsibilities": [
+    "Validar compliance PDF/X-1a ou PDF/X-4",
+    "Confirmar espaço de cor CMYK (sem RGB residual)",
+    "Verificar resolução ≥ 300dpi em todas as imagens raster",
+    "Confirmar sangria de 3mm em todas as páginas",
+    "Verificar que 100% das fontes estão embutidas",
+    "Validar ICC profile correto (FOGRA39 L / U.S. Web Coated v2 para CMYK)",
+    "Confirmar contagem de páginas múltipla de 4 (ou 16)",
+    "Gerar preflight_report.json com pass/fail por critério"
+  ],
+  "input": {
+    "pdf_path": "string - Local temp path",
+    "trim_size_mm": "object",
+    "target_multiple": "number - 4 ou 16"
+  },
+  "output": {
+    "passed": "boolean",
+    "checks": {
+      "pdfx_compliance": "object - { passed, details }",
+      "color_space_cmyk": "object",
+      "image_dpi": "object",
+      "bleed_3mm": "object",
+      "fonts_embedded": "object",
+      "icc_profile": "object",
+      "page_count_multiple": "object"
+    },
+    "warnings": "array",
+    "blockers": "array"
+  },
+  "system_prompt": "Você é o Agente de Pré-Impressão. Nada passa sem sua validação.\n\nCHECKS OBRIGATÓRIOS (blockers se falharem):\n1. Espaço de cor: apenas CMYK permitido. RGB = bloqueio.\n2. Resolução: mínimo 300dpi em cada imagem raster.\n3. Fontes: 100% embutidas (not referenced).\n4. Sangria: 3mm de sangria real aplicada.\n5. Contagem: páginas múltiplas de 4 (ou 16 se solicitado).\n\nCHECKS RECOMENDADOS (warnings):\n- ICC profile CMYK correto (FOGRA39 ou equivalente regional).\n- PDF/X-1a ou PDF/X-4 compliance.\n- Sem transparência flatten pendente.\n\nENTREGA: Relatório estruturado JSON com passed (boolean geral), checks individuais e listas de warnings/blockers.",
+  "quality_criteria": {
+    "completeness": "Todos os checks rodados?",
+    "accuracy": "Detecta problemas reais?",
+    "no_false_positives": "Não bloqueia PDFs válidos?"
+  },
+  "min_quality_score": 100,
+  "created_at": "2026-04-18"
+}
