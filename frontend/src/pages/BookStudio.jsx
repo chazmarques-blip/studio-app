@@ -189,6 +189,33 @@ export default function BookStudio() {
     setStep('cover');
   };
 
+  // Chapter-flow: regenerate a single page illustration (with optional style override)
+  const regeneratePageIllus = async (pageNumber, withOverride = false) => {
+    const body = { page_number: pageNumber };
+    if (withOverride) {
+      const extra = window.prompt(
+        `Instruções extras para a pg.${pageNumber} (estilo, personagens, cena). Ex: "Pixar 3D, Ash cinza e Snow branco, SEM cachorros extras":`,
+        'Manter estilo Pixar 3D consistente com as outras páginas. Personagens principais: Ash (pomerânia cinza-azulado, olhos azuis) e Snow (pomerânia branca, olhos castanhos). NÃO incluir outros cachorros.'
+      );
+      if (extra === null) return;
+      if (extra.trim()) body.override_prompt = extra;
+    }
+    await callApi('post', `/api/studio/projects/${projectId}/book/generate-illustration`, body, `Página ${pageNumber} regerada`);
+    await loadState(projectId);
+  };
+
+  // Chapter-flow: regenerate ALL missing/failed pages
+  const regenerateAllPages = async () => {
+    const plan = (bookState?.illustration_plan || []).filter((p) => p.type !== 'none');
+    for (const p of plan) {
+      try {
+        await axios.post(`${API}/api/studio/projects/${projectId}/book/generate-illustration`, { page_number: p.page_number }, authHeaders());
+      } catch (e) { toast.error(`Pg ${p.page_number} falhou`); }
+      await loadState(projectId);
+    }
+    toast.success('Ilustrações regeradas!');
+  };
+
   const genCover = async () => {
     await callApi('post', `/api/studio/projects/${projectId}/book/generate-cover-v2`, null, 'Capa gerada');
     await loadState(projectId); setStep('cover');
@@ -774,17 +801,32 @@ export default function BookStudio() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-amber-900">Ilustrações</h2>
               <div className="flex gap-2">
-                <button onClick={illustrateAll} disabled={busyAction} data-testid="btn-illustrate-all"
-                  className="px-4 py-2 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-1 disabled:opacity-50">
-                  {busyAction ? <Loader2 className="animate-spin" size={12} /> : <ImageIcon size={12} />}
-                  Gerar todas faltantes
-                </button>
+                {isPicturebook ? (
+                  <button onClick={illustrateAll} disabled={busyAction} data-testid="btn-illustrate-all"
+                    className="px-4 py-2 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-1 disabled:opacity-50">
+                    {busyAction ? <Loader2 className="animate-spin" size={12} /> : <ImageIcon size={12} />}
+                    Gerar todas faltantes
+                  </button>
+                ) : (
+                  <button onClick={regenerateAllPages} disabled={busyAction} data-testid="btn-regen-all-pages"
+                    className="px-4 py-2 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center gap-1 disabled:opacity-50"
+                    title="Regera todas as ilustrações deste livro usando os personagens de referência"
+                  >
+                    {busyAction ? <Loader2 className="animate-spin" size={12} /> : <RefreshCw size={12} />}
+                    Regerar todas
+                  </button>
+                )}
                 <button onClick={() => setStep('cover')} data-testid="btn-go-cover"
                   className="px-4 py-2 text-xs border rounded-lg hover:bg-amber-50 flex items-center gap-1">
                   Capa <ChevronRight size={12} />
                 </button>
               </div>
             </div>
+            {!isPicturebook && (
+              <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-purple-900">
+                💡 <strong>Dica:</strong> clique em <strong>Custom</strong> numa página pra regerar com instruções específicas (ex: "mesmo estilo Pixar 3D", "sem outros cachorros", "personagens Ash cinza + Snow branco"). Útil quando uma ilustração saiu fora do padrão visual.
+              </div>
+            )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {isPicturebook ? spreads.map((s) => (
                 <div key={s.index} data-testid={`illus-${s.index}`} className="border rounded-lg overflow-hidden group">
@@ -817,11 +859,31 @@ export default function BookStudio() {
                     </div>
                   )}
                   <div className="p-2">
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-1 gap-1">
                       <span className="text-[10px] font-mono bg-amber-100 text-amber-800 px-1.5 rounded">pg.{p.page_number}</span>
                       <span className="text-[9px] text-gray-500">Cap {p.chapter} • {p.type}</span>
                     </div>
-                    <p className="text-[11px] text-gray-700 line-clamp-2">{p.description}</p>
+                    <p className="text-[11px] text-gray-700 line-clamp-2 mb-2">{p.description}</p>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => regeneratePageIllus(p.page_number, false)}
+                        disabled={busyAction}
+                        data-testid={`btn-regen-page-${p.page_number}`}
+                        className="flex-1 text-[10px] text-amber-700 hover:bg-amber-50 border border-amber-200 px-1.5 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-40"
+                        title="Regerar mantendo o plano original"
+                      >
+                        <RefreshCw size={10} /> Regerar
+                      </button>
+                      <button
+                        onClick={() => regeneratePageIllus(p.page_number, true)}
+                        disabled={busyAction}
+                        data-testid={`btn-regen-page-custom-${p.page_number}`}
+                        className="flex-1 text-[10px] text-purple-700 hover:bg-purple-50 border border-purple-200 px-1.5 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-40"
+                        title="Regerar com instruções customizadas (estilo, personagens)"
+                      >
+                        <Wand2 size={10} /> Custom
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

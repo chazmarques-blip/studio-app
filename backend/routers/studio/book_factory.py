@@ -557,46 +557,58 @@ async def book_generate_illustration(project_id: str, req: IllustrationGenerateR
     style_rules = book_bible.get("style_rules", "")
     visual_track = book_bible.get("visual_track", "storybook")
     palette = book_bible.get("palette", {})
+    characters = project.get("characters") or []
 
     chars_in_page = item.get("characters_in_page") or []
 
-    # Collect avatar bytes (up to 5)
-    avatar_cache = {}
+    # Collect avatar bytes + descriptions (always send ALL project characters up to 5,
+    # prioritizing characters in scene, so illustrator maintains look across the book).
     primary_image = None
     extra_images = []
-    for name in chars_in_page[:5]:
+    char_descriptions = []
+    ordered_names = list(chars_in_page) + [
+        c.get("name") for c in characters
+        if isinstance(c, dict) and c.get("name") and c.get("name") not in chars_in_page
+    ]
+    for name in ordered_names[:5]:
+        if not name:
+            continue
         url = char_avatars.get(name)
         if not url:
             continue
-        try:
-            full_url = url if not url.startswith("/") else f"{os.environ.get('SUPABASE_URL', '')}/storage/v1/object/public{url}"
-            tmp = _tempfile.NamedTemporaryFile(suffix=".png", delete=False)
-            urllib.request.urlretrieve(full_url, tmp.name)
-            with open(tmp.name, "rb") as f:
-                img_bytes = f.read()
-            try:
-                os.unlink(tmp.name)
-            except Exception:
-                pass
-            if primary_image is None:
-                primary_image = img_bytes
-            else:
-                extra_images.append(img_bytes)
-        except Exception as e:
-            logger.warning(f"BookFactory illustrator: failed to load avatar {name}: {e}")
+        img_bytes = _download_avatar_bytes(url)
+        if not img_bytes:
+            continue
+        desc = next((c.get("description", "") for c in characters if isinstance(c, dict) and c.get("name") == name), "")
+        char_descriptions.append(f"- {name}: {desc[:200]}")
+        if primary_image is None:
+            primary_image = img_bytes
+        else:
+            extra_images.append(img_bytes)
 
-    prompt = req.override_prompt or f"""Create a full-page book illustration in {visual_track} style.
+    prompt = req.override_prompt or f"""Create a full-page book illustration. STYLE MUST MATCH the other pages of this book — do NOT drift to a different art style.
 
-SCENE: {item.get('description')}
+ART STYLE (MANDATORY — every page of this book follows this):
+- Visual track: {visual_track}
+- Style rules: {style_rules}
+- Palette: primary={palette.get('primary', '')}, secondary={palette.get('secondary', '')}, accent={palette.get('accent', '')}
 
-STYLE RULES: {style_rules}
-PALETTE: primary={palette.get('primary', '')}, secondary={palette.get('secondary', '')}, accent={palette.get('accent', '')}
+SCENE TO ILLUSTRATE:
+{item.get('description')}
 
-CHARACTERS: match reference images EXACTLY. Same species, face, clothing, palette.
-NO TEXT in illustration.
-Leave 3mm bleed margin. Safe area inside.
-Composition: cinematic, reader-friendly, high contrast.
+CHARACTERS VISIBLE IN SCENE: {', '.join(chars_in_page) if chars_in_page else 'scene context only'}
+CHARACTER REFERENCES (match the attached reference images EXACTLY — same species, face, fur pattern, eye color, proportions, clothing):
+{chr(10).join(char_descriptions) if char_descriptions else '(no character refs — use scene only)'}
+
+HARD RULES:
+- NO TEXT, NO LETTERS, NO SIGNS in the illustration.
+- DO NOT add characters that are not in the scene list above. NO random extra dogs/people.
+- DO NOT switch art style (no flat-vector, no pixel-art, no 2D cartoon if the style is 3D Pixar, etc.).
+- Characters must match reference images pixel-level: same breed, same fur color/pattern, same eyes.
+- Leave 3mm bleed margin; keep main subject inside safe area.
+- Composition: cinematic, reader-friendly, high contrast, warm lighting.
 """
+
 
     try:
         from core.llm import generate_image_gemini_sync

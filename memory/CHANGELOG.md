@@ -1,6 +1,27 @@
 # StudioX Changelog
 
-## 2026-04-19 (Session 5 — Bugfix: Pipeline + Cover + UI chapter-flow + Download proxy)
+## 2026-04-19 (Session 5 — Bugfix: Pipeline + Cover + UI chapter-flow + Download proxy + Regerar ilustrações)
+
+### Fix 5: Regerar ilustração individual no fluxo chapter + prompt reforçado
+**Problema do usuário:** Algumas ilustrações saíam fora do padrão Pixar 3D (pg.6 cartoon bichinho, pg.10 vector flat, pg.13 múltiplos cachorros random). Não havia botão para regenerar individualmente no fluxo chapter.
+
+**Fix Backend (`book_generate_illustration`):**
+- Agora sempre passa **todos os personagens do projeto** (até 5) como refs multimodais (prioriza `characters_in_page`), não só os na cena.
+- Inclui `char_descriptions` no prompt com nome + descrição curta de cada personagem.
+- Prompt reescrito com regras HARD: "NO LETTERS", "NO extra characters/dogs", "DO NOT switch art style" (explicita que não pode mudar de 3D Pixar pra flat/cartoon/pixel).
+- Reforço do `style_rules` + `palette` do Art Director como obrigatórios.
+
+**Fix Frontend (`BookStudio.jsx`):**
+- No grid do fluxo chapter, cada card de ilustração agora tem 2 botões:
+  - 🔄 **Regerar** — usa o plano original (rápido, corrige drift).
+  - ✨ **Custom** — abre prompt para o usuário escrever instruções extras (estilo, personagens, excluir elementos).
+- Botão **Regerar todas** no header (para refazer o lote inteiro após ajustar Art Director).
+- Pré-preenche o prompt Custom com um template pronto sobre estilo Pixar 3D + Ash/Snow, que o usuário pode editar.
+- Banner de dica roxo explicando o uso do botão Custom.
+
+**Validação:** pg.6 regerada — saiu de cartoon flat para Pixar 3D com volumetric lighting, soft shadows, detailed fur, Ash corretamente identificado por tag.
+
+
 
 ### Fix 3: PDF download bloqueado (`ERR_BLOCKED_BY_CLIENT`)
 **Bug:** O botão "Baixar PDF" apontava direto para o domínio `*.supabase.co`. Ad-blockers do usuário (uBlock/Chrome) bloqueiam esse domínio → download falha silenciosamente.
