@@ -115,11 +115,13 @@
   {% endif %}
 
   /* ─── ILLUSTRATIONS — uniform finishing across all tiers ──────── */
-  /* Design rule: all images get the same corner radius (2mm), same subtle
-     border (0.3mm warm grey), same figcaption treatment. Three size tiers:
-       .full-page  → own dedicated page, framed w/ margin so radius is visible
-       .half       → banner inside a text page (full width, ~80mm tall)
-       .spot       → inline, float right, ~55mm wide, text wraps around it
+  /* Design rule: Gemini outputs 1024×1024 SQUARE images. All tiers respect this
+     natural aspect (object-fit: contain on a square container), so characters
+     are never cropped/distorted. Same corner radius (2mm), same subtle border.
+     Three size tiers:
+       .full-page  → ~140×140mm centered on its page (not page-breaking)
+       .half       → ~90×90mm square centered inside a text page
+       .spot       → ~55×55mm square floating right, text wraps around
   */
   figure.illustration {
     page-break-inside: avoid;
@@ -133,6 +135,8 @@
     border: 0.3mm solid #e3ddd0;
     box-sizing: border-box;
     background: #fff;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
   }
   figure.illustration figcaption {
     font-family: 'EB Garamond', Garamond, serif;
@@ -147,37 +151,32 @@
     line-height: 1.3;
   }
 
-  /* TIER 1: FULL-PAGE — dedicated page, framed inset so radius is visible */
+  /* TIER 1: FULL — largest inline image (keeps flow, doesn't force a blank page) */
   figure.illustration.full-page {
-    page-break-before: always;
-    page-break-after: always;
-    margin: 8mm 6mm;
+    margin: 8mm auto;
     text-align: center;
   }
   figure.illustration.full-page img {
-    width: 100%;
+    width: 130mm;
     max-width: 100%;
-    height: auto;
-    max-height: 185mm;
-    object-fit: cover;
+    height: 130mm;
+    max-height: 130mm;
   }
   figure.illustration.full-page figcaption {
-    margin-top: 5mm;
+    margin-top: 4mm;
     font-size: 9.5pt;
   }
 
-  /* TIER 2: HALF / BANNER — horizontal banner inside a text page */
+  /* TIER 2: HALF — square inline, centered within text flow */
   figure.illustration.half {
-    page-break-inside: avoid;
-    margin: 6mm 0;
+    margin: 6mm auto;
     text-align: center;
   }
   figure.illustration.half img {
-    width: 100%;
+    width: 90mm;
     max-width: 100%;
-    height: auto;
+    height: 90mm;
     max-height: 90mm;
-    object-fit: cover;
   }
 
   /* TIER 3: SPOT — inline, floats right, TEXT WRAPS AROUND IT */
@@ -189,11 +188,10 @@
     text-align: center;
   }
   figure.illustration.spot img {
-    width: 100%;
+    width: 55mm;
     max-width: 100%;
-    height: auto;
-    max-height: 70mm;
-    object-fit: cover;
+    height: 55mm;
+    max-height: 55mm;
   }
   figure.illustration.spot figcaption {
     font-size: 7.5pt;
@@ -201,23 +199,19 @@
     max-width: 100%;
   }
 
-  /* Section breaks clear any floating spot so the next section starts fresh */
+  /* Section breaks / h2 clear any floating spot so next section starts fresh */
   .section-break, .chapter-opener, h2 {
     clear: both;
   }
 
-  /* SPREAD type → render as full-page banner for now */
+  /* SPREAD type → large like full */
   figure.illustration.spread {
-    page-break-before: always;
-    page-break-after: always;
-    margin: 8mm 0;
+    margin: 8mm auto;
   }
   figure.illustration.spread img {
-    width: 100%;
-    height: auto;
-    max-height: 185mm;
-    object-fit: cover;
-    border-radius: 2mm;
+    width: 130mm;
+    height: 130mm;
+    max-height: 130mm;
   }
 
   /* Chapter opener styles (set by Diagramador Master) */

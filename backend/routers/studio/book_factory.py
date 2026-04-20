@@ -487,13 +487,15 @@ async def book_plan_illustrations(project_id: str, tenant=Depends(get_current_te
     chapter_summaries = []
     for idx in sorted(chapters_dict.keys(), key=lambda x: int(x)):
         ch = chapters_dict[idx]
-        chapter_summaries.append(f"Ch{idx} ({ch.get('title')}): {ch.get('prose', '')[:500]}...")
+        prose = ch.get("prose", "")
+        para_count = sum(1 for p in prose.split("\n\n") if p.strip() and not p.strip().startswith("##"))
+        chapter_summaries.append(f"Ch{idx} ({ch.get('title')}) — {para_count} paragraphs — preview: {prose[:400]}...")
 
     prompt = f"""You are the Editorial Art Director. Plan illustrations for this book.
 
 FORMAT: {brief.get('format_preset')} — trim {brief.get('trim_size')} — track {brief.get('illustration_track')}
 
-CHAPTERS:
+CHAPTERS (with paragraph counts):
 {chr(10).join(chapter_summaries)}
 
 Return ONLY JSON:
@@ -507,10 +509,16 @@ Return ONLY JSON:
   ]
 }}
 
-Rules:
-- For format=infantil_ilustrado: 1 full-page illustration per chapter + 1 spot at chapter start.
+DENSITY RULES (critical — avoid text-heavy pages with no visuals):
+- For format=infantil_ilustrado: MINIMUM 3 illustrations per chapter (for chapters with 6+ paragraphs). Aim for 1 illustration every 3-4 paragraphs. For a 12-paragraph chapter generate 3-4 illustrations. NEVER generate fewer than 3.
+- For format=tecnico_historico: 1 illustration per 6-8 paragraphs, minimum 2 per chapter.
 - For format=romance_adulto: type=none (no interior illustrations).
-- For format=tecnico_historico: 1 full-page every 2-3 chapters.
+
+Illustration VARIETY per chapter:
+- Mix "spot" (character close-up, quick beat, small emotional moment) and "full" (establishing shot, action, climax). Prefer "spot" for routine beats, "full" for dramatic peaks.
+- Each illustration's `description` should be specific and rooted in a concrete scene/paragraph from the chapter. Avoid generic "character in setting" — tie it to an actual described moment.
+
+Use `page_number` as a UNIQUE integer id across the whole book (1, 2, 3, 4... across all chapters), not as a literal page slot.
 """
 
     try:
@@ -526,14 +534,48 @@ Rules:
         logger.error(f"BookFactory illustration plan failed: {e}")
         raise HTTPException(status_code=502, detail=str(e))
 
-    book_bible["illustration_plan"] = plan.get("illustration_plan", [])
+    raw_plan = plan.get("illustration_plan", []) or []
+
+    # Post-process: ensure density — min 3 per chapter that has 6+ paragraphs
+    format_preset = brief.get("format_preset", "infantil_ilustrado")
+    if format_preset == "infantil_ilustrado":
+        from collections import defaultdict as _dd
+        by_ch = _dd(list)
+        for it in raw_plan:
+            if it.get("type") != "none":
+                by_ch[it.get("chapter")].append(it)
+        next_pn = max((it.get("page_number", 0) or 0) for it in raw_plan) + 1 if raw_plan else 1
+        for idx_str in sorted(chapters_dict.keys(), key=lambda x: int(x)):
+            ch = chapters_dict[idx_str]
+            idx = int(idx_str)
+            prose = ch.get("prose", "") or ""
+            para_count = sum(1 for p in prose.split("\n\n") if p.strip() and not p.strip().startswith("##"))
+            existing = len(by_ch.get(idx, []))
+            target = max(3, min(5, (para_count + 2) // 3))  # ~1 per 3 paras, min 3, max 5
+            if para_count < 4:
+                target = 2  # very short chapter
+            missing = max(0, target - existing)
+            characters = [c.get("name") for c in (project.get("characters") or []) if isinstance(c, dict) and c.get("name")]
+            main_chars = characters[:2] if characters else []
+            for i in range(missing):
+                raw_plan.append({
+                    "page_number": next_pn,
+                    "chapter": idx,
+                    "type": "spot",  # default to spot (small) for density additions
+                    "description": f"A quiet character moment from the chapter '{ch.get('title')}' — show {', '.join(main_chars) if main_chars else 'the main character'} in a detail beat consistent with the chapter's mood.",
+                    "characters_in_page": main_chars,
+                })
+                next_pn += 1
+                logger.info(f"BookFactory plan: added density-spot to ch{idx} (was {existing}, target {target})")
+
+    book_bible["illustration_plan"] = raw_plan
     book_bible["visual_track"] = plan.get("visual_track")
     book_bible["palette"] = plan.get("palette")
     book_bible["style_rules"] = plan.get("style_rules")
     pb = project.get("project_bible", {}) or {}
     pb["book_bible"] = book_bible
     project["project_bible"] = pb
-    _add_milestone(project, "book_illustrations_planned", f"{len(plan.get('illustration_plan', []))} ilustrações planeadas")
+    _add_milestone(project, "book_illustrations_planned", f"{len(raw_plan)} ilustrações planeadas")
     _save_project(tenant["id"], settings, projects)
 
     return plan
@@ -900,11 +942,11 @@ DESIGN RULES:
 1. Every illustration must be placed ADJACENT to the paragraph whose content it depicts. Read each illustration's description and find the paragraph that describes that moment. Put the illustration IMMEDIATELY AFTER that paragraph.
 2. Do NOT stack illustrations at the chapter opening. Distribute them naturally where they belong narratively.
 3. DECIDE THE SIZE TIER for each illustration (this controls visual rhythm):
-   - "full" = full-page dedicated image (dramatic moments, climax, emotional peaks — max 1 per chapter)
-   - "half" = horizontal banner inside a text page (~90mm tall, full width — great for action/establishing shots, pairs well with flanking paragraphs)
-   - "spot" = small inline image with text wrapping around it on the right side (~55×70mm — for character close-ups, quick beats)
-   Vary the tiers: avoid 3 fulls in a row. Most chapters should mix 1 full + 2-3 half/spot.
-   **CRITICAL for "spot":** must be followed by AT LEAST 2 paragraph blocks (text wraps around it). Never place a spot as the last block of the chapter. If a spot would be too close to the end, promote it to "half" instead.
+   - "full" = large square image (~140×140mm) centered inline with text, for EMOTIONAL PEAKS only (max 1 per chapter, rarely 0). Needs at least 2 paragraphs before AND after.
+   - "half" = medium square (~90×90mm) inline centered, for most scenes (action, establishing shots, key beats).
+   - "spot" = small square (~55×55mm) floating right with text wrapping on the left, for quick beats and character close-ups.
+   Vary the tiers: most chapters should be 1-2 half + 1-2 spot + maybe 1 full. NEVER place an illustration as the last block of a chapter, and NEVER stack two illustrations back-to-back.
+   **CRITICAL for "spot":** must be followed by AT LEAST 2 paragraph blocks (text wraps around it). If a spot would be too close to the end, promote it to "half" instead.
 4. Use "chapter_opener" as the first block with style="drop_cap" (elegant) or "cinematic" (dramatic) — pick based on the chapter's mood.
 5. Optionally add "pull_quote" blocks (max 1 per chapter) for a line with standalone literary power.
 6. Optionally add "section_break" blocks between acts of the chapter (subtle ornamental rest).
@@ -1030,12 +1072,13 @@ PROPOSED LAYOUT PLAN (from Diagramador):
 
 AUDIT CHECKLIST:
 1. IMAGE CONTEXT MATCH — Is each illustration adjacent to the paragraph that actually describes it? If illustration id=X depicts "Ash meeting Snow" but it's placed near a paragraph about "Brenda's breakfast", MOVE it.
-2. PACING — No more than 1 illustration block every 3 paragraph blocks (avoid visual bloat).
-3. CHAPTER OPENER — First block should be a "chapter_opener". Drop_cap is default; "cinematic" only for dramatic/climactic chapters.
+2. PACING — No more than 1 illustration block every 3 paragraph blocks (avoid visual bloat). Avoid consecutive illustration blocks unless one is "spot" and the other is "half/full" with paragraphs between them.
+3. CHAPTER OPENER — First block should be a "chapter_opener". Drop_cap is default; "cinematic" only for dramatic/climactic chapters. A chapter with fewer than 3 paragraphs is TOO SHORT — tell me in the critique.
 4. PULL QUOTES — If present, the text must appear VERBATIM in one of the paragraphs above. Otherwise remove.
 5. COMPLETENESS — Every paragraph [N] must appear exactly once.
 6. NARRATIVE ORDER — Paragraphs must appear in natural index order (0,1,2,3...). Section breaks may split but indices stay ordered.
-7. SIZE TIER VARIETY — Every illustration must have `size_tier` set to "full", "half", or "spot". At most 1 "full" per chapter (dramatic peak only). Prefer "half" (banner) and "spot" (inline right-float) for visual rhythm. If a block lacks size_tier or has wrong tier, set it.
+7. SIZE TIER VARIETY — Every illustration must have `size_tier` set to "full", "half", or "spot". Use "full" VERY sparingly (0-1 per chapter, ONLY for dramatic climax). Prefer "half" (square 90mm, inline with text) and "spot" (55mm float right, text wraps). If a block lacks size_tier, set it.
+8. TEXT-IMAGE RATIO — Every illustration should be surrounded by at least 2 paragraphs BEFORE and 2 AFTER (so the page never feels like a lonely image or lonely text). If violated, demote "full" → "half" or move the illustration to a better position within the chapter.
 
 Return ONLY valid JSON:
 {{
