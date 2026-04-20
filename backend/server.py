@@ -106,13 +106,6 @@ async def deep_health(user=Depends(get_current_user)):
                       ("gemini", GEMINI_API_KEY), ("elevenlabs", ELEVENLABS_API_KEY)]:
         checks[name] = {"status": "ok" if key else "missing_key"}
 
-    # AI Circuit Breakers
-    try:
-        from providers.ai import get_provider_status
-        checks["ai_providers"] = get_provider_status()
-    except Exception:
-        checks["ai_providers"] = {"status": "not_initialized"}
-
     # Disk
     disk = shutil.disk_usage("/tmp")
     checks["disk"] = {

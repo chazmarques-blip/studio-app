@@ -1,5 +1,36 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 8 — Cleanup Tier 1: Arquivos mortos e diretórios vazios)
+
+### Limpeza preliminar do código migrado de outro projeto (AgentFlow → StudioX)
+
+**Removidos sem impacto (zero referências no código vivo):**
+
+Frontend:
+- `/app/frontend/src/components/DirectedStudio.jsx.backup`
+- `/app/frontend/src/pages/Profile.jsx` (órfão — sem rota, sem imports)
+- `/app/frontend/src/pages/Dashboard.jsx` (App.js já usa `DashboardStudio` com alias `Dashboard`)
+- `/app/frontend/src/pages/Landing.jsx` (App.js usa `LandingV2`)
+- `/app/frontend/src/components/pipeline/AvatarLibraryModal.jsx` (V1 substituída por V2)
+
+Backend:
+- `/app/backend/routers/studio/director.py.backup`
+- `/app/backend/providers/` (diretório inteiro — 10 arquivos, arquitetura abstracta nunca usada)
+- `/app/backend/db/` (`__init__.py` + `repositories/__init__.py` vazios)
+- `/app/backend/core/video_stitching.py` (0 imports)
+- `/app/backend/core/idempotency.py` (0 imports)
+- `/app/backend/test_commercial.py`, `/app/backend/test_gemini_imagen.py` (testes avulsos na raiz)
+- `server.py:109-114` — bloco try/except que importava `providers.ai.get_provider_status` (dead code)
+
+**Validação:**
+- Backend reinicia limpo, sem erros de import.
+- Smoke-test: `/api/health`, `/auth/login`, `/auth/me`, `/studio/projects`, `/book/state` → todos 200 OK.
+- Frontend: lista de projetos + filtros continuam funcionando (66 projetos, 61 vídeos / 5 livros).
+
+**Impacto:** ~70KB de código morto + 2 diretórios vazios removidos. Próximos tiers (docs antigos + testes legados) aguardam decisão.
+
+---
+
 ## 2026-04-20 (Session 7 — P0 Fix: Event Loop Unblocking para Login/Auth)
 
 ### Bugfix P0 — Timeout de login durante pipelines pesadas
