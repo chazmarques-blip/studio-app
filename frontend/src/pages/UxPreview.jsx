@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Home, Users, Bot, Settings, BookOpen, Video, Layers, Plus, Search,
-  MoreHorizontal, Folder, ChevronLeft, Check, Zap, FileText, Clapperboard, Loader2 as Loader,
+  MoreHorizontal, Folder, ChevronLeft, Check, Zap, FileText, Clapperboard, Clock, Loader2 as Loader,
 } from 'lucide-react';
 
 // Fake projects used to demonstrate layout density + card styling
@@ -120,72 +120,79 @@ function DarkMockup() {
               })}
             </div>
 
-            <div className="space-y-1.5" style={{ fontFamily: "'Manrope', system-ui" }}>
+            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
               {items.map((p) => {
                 const meta = TYPE_META[p.type];
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-4 rounded-lg border border-[#262626] bg-[#121212] hover:border-[#525252] hover:bg-[#171717] transition cursor-pointer px-3 py-2"
+                    className="group flex items-stretch gap-4 rounded-2xl border border-[#262626] bg-[#121212] hover:border-[#3a3a3a] transition cursor-pointer p-3"
                   >
-                    {/* Thumbnail */}
-                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center relative">
+                    {/* Thumbnail — vertical (3:4 book cover aspect) */}
+                    <div className="w-20 shrink-0 rounded-lg bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center relative aspect-[3/4]">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={20} strokeWidth={1.25} className="text-[#3a3a3a]" />
-                      )}
-                      {p.done && (
-                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#121212]" title="Pronto" />
+                        <meta.Icon size={26} strokeWidth={1.25} className="text-[#3a3a3a]" />
                       )}
                     </div>
 
                     {/* Name + meta */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[13px] font-semibold text-white truncate leading-tight">{p.name}</h3>
-                      <div className="flex items-center gap-2 text-[11px] text-[#A3A3A3] mt-1 flex-wrap">
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h3 className="text-[15px] font-semibold text-white truncate leading-tight">{p.name}</h3>
+                      <div className="flex items-center gap-2.5 text-[11px] text-[#A3A3A3] mt-1.5 flex-wrap">
                         <span className={`inline-flex items-center gap-1 font-medium ${meta.dark}`}>
-                          <meta.Icon size={10} /> {meta.label}
+                          <meta.Icon size={11} /> {meta.label}
                         </span>
-                        <span className="text-[#525252]">·</span>
                         <span className="inline-flex items-center gap-1">
-                          <Users size={10} className="text-[#737373]" />
+                          <Users size={11} className="text-[#737373]" />
                           {p.characters} {p.characters === 1 ? 'personagem' : 'personagens'}
                         </span>
-                        {(p.pages || p.scenes) && (
-                          <>
-                            <span className="text-[#525252]">·</span>
-                            {p.pages && (
-                              <span className="inline-flex items-center gap-1">
-                                <FileText size={10} className="text-[#737373]" />
-                                {p.pages} páginas
-                              </span>
-                            )}
-                            {p.scenes && (
-                              <span className="inline-flex items-center gap-1">
-                                <Clapperboard size={10} className="text-[#737373]" />
-                                {p.scenes} cenas
-                              </span>
-                            )}
-                          </>
+                        {p.pages && (
+                          <span className="inline-flex items-center gap-1">
+                            <FileText size={11} className="text-[#737373]" />
+                            {p.pages} páginas
+                          </span>
                         )}
-                        <span className="text-[#525252]">·</span>
+                        {p.scenes && (
+                          <span className="inline-flex items-center gap-1">
+                            <Clapperboard size={11} className="text-[#737373]" />
+                            {p.scenes} cenas
+                          </span>
+                        )}
                         <span className={`inline-flex items-center gap-1 font-medium ${p.done ? 'text-emerald-400' : 'text-amber-400'}`}>
-                          {p.done ? <Check size={10} /> : <Loader size={10} />}
+                          {p.done ? <Check size={11} /> : <Loader size={11} />}
                           {p.status}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[#737373]">
+                          <Clock size={11} />
+                          {p.when}
                         </span>
                       </div>
                     </div>
 
-                    {/* When */}
-                    <p className="hidden sm:block text-[10px] text-[#525252] font-mono uppercase tracking-wider shrink-0 w-16 text-right">{p.when}</p>
+                    {/* Status badge + actions (right side) */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Big status pill */}
+                      <div className="flex flex-col items-center gap-1 px-2">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                          p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-[#3a3a3a] to-[#262626] border border-[#525252]'
+                        }`}>
+                          <meta.Icon size={16} className="text-white" />
+                        </div>
+                        <span className={`text-[9px] font-mono uppercase tracking-wider ${p.done ? 'text-amber-400' : 'text-[#737373]'}`}>
+                          {p.done ? 'Pronto' : 'Progresso'}
+                        </span>
+                      </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button className="px-3 py-1 rounded-md text-[11px] font-medium text-[#A3A3A3] hover:text-white hover:bg-white/10 transition">
-                        Abrir
+                      {/* Action pills */}
+                      <button className="px-3 h-9 rounded-full bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 text-[12px] font-medium flex items-center gap-1.5 transition">
+                        <BookOpen size={13} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="p-1.5 rounded-md hover:bg-white/10 opacity-0 group-hover:opacity-100 transition">
+                      <button className="px-3 h-9 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[12px] font-medium flex items-center gap-1.5 transition">
+                        <BookOpen size={13} /> Carregar
+                      </button>
+                      <button className="p-2 rounded-md hover:bg-white/10 transition">
                         <MoreHorizontal size={14} className="text-[#737373]" />
                       </button>
                     </div>
@@ -297,72 +304,77 @@ function LightMockup() {
               })}
             </div>
 
-            <div className="space-y-1.5" style={{ fontFamily: "'Manrope', system-ui" }}>
+            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
               {items.map((p) => {
                 const meta = TYPE_META[p.type];
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-4 rounded-lg border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer px-3 py-2"
+                    className="group flex items-stretch gap-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer p-3"
                   >
-                    {/* Thumbnail */}
-                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center relative">
+                    {/* Thumbnail — vertical (3:4 book cover aspect) */}
+                    <div className="w-20 shrink-0 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center relative aspect-[3/4]">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={20} strokeWidth={1.25} className="text-gray-300" />
-                      )}
-                      {p.done && (
-                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white" title="Pronto" />
+                        <meta.Icon size={26} strokeWidth={1.25} className="text-gray-300" />
                       )}
                     </div>
 
                     {/* Name + meta */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[13px] font-semibold text-gray-900 truncate leading-tight">{p.name}</h3>
-                      <div className="flex items-center gap-2 text-[11px] text-gray-600 mt-1 flex-wrap">
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h3 className="text-[15px] font-semibold text-gray-900 truncate leading-tight">{p.name}</h3>
+                      <div className="flex items-center gap-2.5 text-[11px] text-gray-600 mt-1.5 flex-wrap">
                         <span className={`inline-flex items-center gap-1 font-medium ${meta.light}`}>
-                          <meta.Icon size={10} /> {meta.label}
+                          <meta.Icon size={11} /> {meta.label}
                         </span>
-                        <span className="text-gray-300">·</span>
                         <span className="inline-flex items-center gap-1">
-                          <Users size={10} className="text-gray-400" />
+                          <Users size={11} className="text-gray-400" />
                           {p.characters} {p.characters === 1 ? 'personagem' : 'personagens'}
                         </span>
-                        {(p.pages || p.scenes) && (
-                          <>
-                            <span className="text-gray-300">·</span>
-                            {p.pages && (
-                              <span className="inline-flex items-center gap-1">
-                                <FileText size={10} className="text-gray-400" />
-                                {p.pages} páginas
-                              </span>
-                            )}
-                            {p.scenes && (
-                              <span className="inline-flex items-center gap-1">
-                                <Clapperboard size={10} className="text-gray-400" />
-                                {p.scenes} cenas
-                              </span>
-                            )}
-                          </>
+                        {p.pages && (
+                          <span className="inline-flex items-center gap-1">
+                            <FileText size={11} className="text-gray-400" />
+                            {p.pages} páginas
+                          </span>
                         )}
-                        <span className="text-gray-300">·</span>
+                        {p.scenes && (
+                          <span className="inline-flex items-center gap-1">
+                            <Clapperboard size={11} className="text-gray-400" />
+                            {p.scenes} cenas
+                          </span>
+                        )}
                         <span className={`inline-flex items-center gap-1 font-medium ${p.done ? 'text-emerald-600' : 'text-amber-600'}`}>
-                          {p.done ? <Check size={10} /> : <Loader size={10} />}
+                          {p.done ? <Check size={11} /> : <Loader size={11} />}
                           {p.status}
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-gray-500">
+                          <Clock size={11} />
+                          {p.when}
                         </span>
                       </div>
                     </div>
 
-                    {/* When */}
-                    <p className="hidden sm:block text-[10px] text-gray-400 font-mono uppercase tracking-wider shrink-0 w-16 text-right">{p.when}</p>
+                    {/* Status badge + actions (right side) */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-col items-center gap-1 px-2">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                          p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-gray-200 to-gray-300'
+                        }`}>
+                          <meta.Icon size={16} className="text-white" />
+                        </div>
+                        <span className={`text-[9px] font-mono uppercase tracking-wider ${p.done ? 'text-amber-600' : 'text-gray-500'}`}>
+                          {p.done ? 'Pronto' : 'Progresso'}
+                        </span>
+                      </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button className="px-3 py-1 rounded-md text-[11px] font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
-                        Abrir
+                      <button className="px-3 h-9 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[12px] font-medium flex items-center gap-1.5 transition border border-orange-100">
+                        <BookOpen size={13} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="p-1.5 rounded-md hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition">
+                      <button className="px-3 h-9 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[12px] font-medium flex items-center gap-1.5 transition border border-emerald-100">
+                        <BookOpen size={13} /> Carregar
+                      </button>
+                      <button className="p-2 rounded-md hover:bg-gray-100 transition">
                         <MoreHorizontal size={14} className="text-gray-400" />
                       </button>
                     </div>
