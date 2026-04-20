@@ -635,13 +635,13 @@ export function AvatarLibraryModalV2({
       <div className="fixed inset-y-0 right-0 left-0 md:left-60 z-[10000] bg-black/80 flex items-center justify-center p-4">
         <div 
           data-testid="avatar-library-modal" 
-          className="w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl"
+          className="w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-white dark:bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl"
         >
           {/* Header */}
           <div className="px-5 py-3 border-b border-[#151515] flex items-center gap-3 shrink-0 bg-gradient-to-r from-[#0D0D0D] to-[#1A1A1A]">
             <Users size={18} className="text-[#8B5CF6]" />
-            <h3 className="text-base font-bold text-white flex-1">{L.title}</h3>
-            <span className="text-xs text-[#888] bg-[#1A1A1A] px-2 py-1 rounded">{library.length} total</span>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white flex-1">{L.title}</h3>
+            <span className="text-xs text-gray-500 dark:text-[#888] bg-gray-100 dark:bg-[#1A1A1A] px-2 py-1 rounded">{library.length} total</span>
             {selected.size > 0 && (
               <span className="text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-2 py-1 rounded font-semibold">
                 {selected.size} {L.selected}
@@ -677,13 +677,13 @@ export function AvatarLibraryModalV2({
               <Plus size={14} />
               <span>Nova Pasta</span>
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#1A1A1A] transition">
-              <X size={18} className="text-[#999]" />
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-[#1A1A1A] transition">
+              <X size={18} className="text-gray-500 dark:text-[#999]" />
             </button>
           </div>
 
           {/* Search & Actions */}
-          <div className="px-5 py-3 border-b border-[#111] shrink-0 space-y-3">
+          <div className="px-5 py-3 border-b border-gray-200 dark:border-[#111] shrink-0 space-y-3">
             {/* Breadcrumb & Folder Navigation */}
             {currentFolder && (
               <div className="flex items-center gap-2 text-xs">
@@ -693,8 +693,8 @@ export function AvatarLibraryModalV2({
                 >
                   Todas as Pastas
                 </button>
-                <ChevronRight size={12} className="text-[#666]" />
-                <span className="text-white font-semibold">
+                <ChevronRight size={12} className="text-gray-400 dark:text-[#666]" />
+                <span className="text-gray-900 dark:text-white font-semibold">
                   {folders.find(f => f.id === currentFolder)?.name || 'Pasta'}
                 </span>
               </div>
@@ -703,7 +703,7 @@ export function AvatarLibraryModalV2({
             {/* Action Bar - Shows when avatars are selected */}
             {selected.size > 0 && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-gradient-to-r from-[#8B5CF6]/10 to-[#7C3AED]/10 border border-[#8B5CF6]/30">
-                <span className="text-xs font-semibold text-white">{selected.size} selecionado(s)</span>
+                <span className="text-xs font-semibold text-gray-900 dark:text-white">{selected.size} selecionado(s)</span>
                 <div className="flex-1" />
                 <button
                   onClick={downloadSelected}
@@ -721,15 +721,15 @@ export function AvatarLibraryModalV2({
                     Mover para Pasta
                   </button>
                   {moveToFolderMenuOpen && (
-                    <div className="absolute top-full mt-1 right-0 bg-[#1A1A1A] border border-[#333] rounded-lg shadow-xl z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                    <div className="absolute top-full mt-1 right-0 bg-gray-100 dark:bg-[#1A1A1A] border border-[#333] rounded-lg shadow-xl z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
                       {folders.length === 0 ? (
-                        <div className="px-4 py-3 text-xs text-[#666]">Nenhuma pasta criada</div>
+                        <div className="px-4 py-3 text-xs text-gray-400 dark:text-[#666]">Nenhuma pasta criada</div>
                       ) : (
                         folders.map(folder => (
                           <button
                             key={folder.id}
                             onClick={() => moveAvatarsToFolder(folder.id)}
-                            className="w-full px-4 py-2 text-left text-xs text-white hover:bg-[#2A2A2A] transition flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:bg-[#2A2A2A] transition flex items-center gap-2"
                           >
                             <div 
                               className="w-3 h-3 rounded-full" 
@@ -744,7 +744,7 @@ export function AvatarLibraryModalV2({
                           setMoveToFolderMenuOpen(false);
                           setFolderModalOpen(true);
                         }}
-                        className="w-full px-4 py-2 text-left text-xs text-[#8B5CF6] hover:bg-[#2A2A2A] transition border-t border-[#333]"
+                        className="w-full px-4 py-2 text-left text-xs text-[#8B5CF6] hover:bg-gray-200 dark:bg-[#2A2A2A] transition border-t border-[#333]"
                       >
                         + Criar Nova Pasta
                       </button>
@@ -763,13 +763,13 @@ export function AvatarLibraryModalV2({
             
             {/* Search bar */}
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666]" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#666]" />
               <input 
                 data-testid="library-search" 
                 value={search} 
                 onChange={e => setSearch(e.target.value)}
                 placeholder={L.search}
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#111] border border-[#1E1E1E] text-sm text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/40 transition" 
+                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-gray-50 dark:bg-[#111] border border-[#1E1E1E] text-sm text-gray-900 dark:text-white placeholder-[#555] outline-none focus:border-[#8B5CF6]/40 transition" 
               />
             </div>
             
@@ -777,11 +777,11 @@ export function AvatarLibraryModalV2({
             <div className="flex gap-2 flex-wrap items-center">
               {/* Style filter */}
               <div className="relative">
-                <Palette size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] pointer-events-none" strokeWidth={1.5} />
+                <Palette size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-[#888] pointer-events-none" strokeWidth={1.5} />
                 <select
                   value={styleFilter}
                   onChange={e => setStyleFilter(e.target.value)}
-                  className="pl-9 pr-8 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
+                  className="pl-9 pr-8 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                     backgroundRepeat: 'no-repeat',
@@ -799,11 +799,11 @@ export function AvatarLibraryModalV2({
               
               {/* Sort filter */}
               <div className="relative">
-                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#888] pointer-events-none" strokeWidth={1.5} />
+                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-[#888] pointer-events-none" strokeWidth={1.5} />
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value)}
-                  className="pl-9 pr-8 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
+                  className="pl-9 pr-8 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                     backgroundRepeat: 'no-repeat',
@@ -818,25 +818,25 @@ export function AvatarLibraryModalV2({
               </div>
               
               {/* Checkboxes */}
-              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
                 <input
                   type="checkbox"
                   checked={has360Filter}
                   onChange={e => setHas360Filter(e.target.checked)}
                   className="w-3.5 h-3.5 rounded accent-[#8B5CF6]"
                 />
-                <RotateCw size={12} className="text-[#888]" strokeWidth={1.5} />
+                <RotateCw size={12} className="text-gray-500 dark:text-[#888]" strokeWidth={1.5} />
                 <span>Apenas com 360°</span>
               </label>
               
-              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
                 <input
                   type="checkbox"
                   checked={hasVoiceFilter}
                   onChange={e => setHasVoiceFilter(e.target.checked)}
                   className="w-3.5 h-3.5 rounded accent-[#8B5CF6]"
                 />
-                <Mic size={12} className="text-[#888]" strokeWidth={1.5} />
+                <Mic size={12} className="text-gray-500 dark:text-[#888]" strokeWidth={1.5} />
                 <span>Apenas com Voz</span>
               </label>
               
@@ -887,10 +887,10 @@ export function AvatarLibraryModalV2({
           {/* Main Content Area with Sidebar */}
           <div className="flex-1 flex overflow-hidden">
             {/* Folders Sidebar */}
-            <div className="w-48 border-r border-[#151515] bg-[#0A0A0A] overflow-y-auto p-3 space-y-0.5">
-              <div className="text-[10px] font-bold text-[#666] uppercase mb-1.5">
+            <div className="w-48 border-r border-[#151515] bg-gray-50 dark:bg-[#0A0A0A] overflow-y-auto p-3 space-y-0.5">
+              <div className="text-[10px] font-bold text-gray-400 dark:text-[#666] uppercase mb-1.5">
                 Pastas ({folders.filter(f => !f.parent_id).length})
-                {folders.length === 0 && <span className="text-[#999] normal-case"> - Nenhuma</span>}
+                {folders.length === 0 && <span className="text-gray-500 dark:text-[#999] normal-case"> - Nenhuma</span>}
               </div>
               
               {/* All Avatars (default view) */}
@@ -899,7 +899,7 @@ export function AvatarLibraryModalV2({
                 className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 ${
                   currentFolder === null 
                     ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] font-semibold border border-[#8B5CF6]/40' 
-                    : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
+                    : 'text-gray-500 dark:text-[#999] hover:bg-gray-100 dark:bg-[#1A1A1A] hover:text-gray-900 dark:text-white'
                 }`}
               >
                 <Users size={11} />
@@ -950,8 +950,8 @@ export function AvatarLibraryModalV2({
                           onClick={handleClick}
                           className={`flex-1 text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 min-w-0 ${
                             isActive 
-                              ? 'bg-[#8B5CF6]/20 text-white font-semibold border border-[#8B5CF6]/40' 
-                              : 'text-[#999] hover:bg-[#1A1A1A] hover:text-white'
+                              ? 'bg-[#8B5CF6]/20 text-gray-900 dark:text-white font-semibold border border-[#8B5CF6]/40' 
+                              : 'text-gray-500 dark:text-[#999] hover:bg-gray-100 dark:bg-[#1A1A1A] hover:text-gray-900 dark:text-white'
                           }`}
                         >
                           <div 
@@ -980,7 +980,7 @@ export function AvatarLibraryModalV2({
                           title={confirmingDelete === folder.id ? 'Confirmar' : 'Deletar'}
                         >
                           {confirmingDelete === folder.id 
-                            ? <span className="text-[8px] text-white font-bold px-0.5">X</span>
+                            ? <span className="text-[8px] text-gray-900 dark:text-white font-bold px-0.5">X</span>
                             : <Trash2 size={9} />
                           }
                         </button>
@@ -1022,7 +1022,7 @@ export function AvatarLibraryModalV2({
             ) : filtered.length === 0 ? (
               <div className="text-center py-20">
                 <Users size={48} className="mx-auto text-[#333] mb-4" />
-                <p className="text-sm text-[#888]">{library.length === 0 ? L.empty : L.noResults}</p>
+                <p className="text-sm text-gray-500 dark:text-[#888]">{library.length === 0 ? L.empty : L.noResults}</p>
               </div>
             ) : (
               <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 160px))' }}>
@@ -1042,7 +1042,7 @@ export function AvatarLibraryModalV2({
                       }`}
                     >
                       {/* Main image */}
-                      <div className="relative aspect-[3/4] bg-[#111]">
+                      <div className="relative aspect-[3/4] bg-gray-50 dark:bg-[#111]">
                         <img 
                           data-src={resolveImageUrl(av.url)}
                           alt={av.name} 
@@ -1068,7 +1068,7 @@ export function AvatarLibraryModalV2({
                             className="p-1 rounded-md bg-black/40 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:bg-black/60 transition pointer-events-auto"
                             title={L.expand}
                           >
-                            <Maximize2 size={12} className="text-white" strokeWidth={1.5} />
+                            <Maximize2 size={12} className="text-gray-900 dark:text-white" strokeWidth={1.5} />
                           </button>
                           
                           {/* Edit button */}
@@ -1083,7 +1083,7 @@ export function AvatarLibraryModalV2({
                               className="p-1 rounded-md bg-black/40 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:bg-black/60 transition pointer-events-auto"
                               title={L.edit}
                             >
-                              <Edit3 size={12} className="text-white" strokeWidth={1.5} />
+                              <Edit3 size={12} className="text-gray-900 dark:text-white" strokeWidth={1.5} />
                             </button>
                           )}
                           
@@ -1114,7 +1114,7 @@ export function AvatarLibraryModalV2({
                             className="p-1 rounded-md bg-black/40 backdrop-blur-sm border border-white/20 hover:border-white/40 hover:bg-black/60 transition pointer-events-auto flex items-center justify-center"
                             title="Baixar personagem"
                           >
-                            <Download size={12} className="text-white" strokeWidth={1.5} />
+                            <Download size={12} className="text-gray-900 dark:text-white" strokeWidth={1.5} />
                           </button>
                         </div>
                       </div>
@@ -1143,7 +1143,7 @@ export function AvatarLibraryModalV2({
                       {/* Already in project badge */}
                       {inProject && (
                         <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
-                          <Check size={12} className="text-white" />
+                          <Check size={12} className="text-gray-900 dark:text-white" />
                         </div>
                       )}
                       
@@ -1158,12 +1158,12 @@ export function AvatarLibraryModalV2({
                             onBlur={() => handleInlineRename(av.id)}
                             onKeyDown={e => { if (e.key === 'Enter') handleInlineRename(av.id); if (e.key === 'Escape') setRenamingAvatarId(null); }}
                             onClick={e => e.stopPropagation()}
-                            className="w-full bg-black/60 border border-purple-500 rounded px-1 py-0.5 text-xs text-white outline-none"
+                            className="w-full bg-black/60 border border-purple-500 rounded px-1 py-0.5 text-xs text-gray-900 dark:text-white outline-none"
                             data-testid={`rename-input-${av.id}`}
                           />
                         ) : (
                           <p
-                            className="text-xs text-white font-semibold truncate cursor-pointer hover:text-purple-300 transition"
+                            className="text-xs text-gray-900 dark:text-white font-semibold truncate cursor-pointer hover:text-purple-300 transition"
                             onDoubleClick={e => { e.stopPropagation(); setRenamingAvatarId(av.id); setRenameValue(av.name || ''); }}
                             title="Duplo-clique para renomear"
                           >
@@ -1181,10 +1181,10 @@ export function AvatarLibraryModalV2({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-5 py-3 border-t border-[#151515] shrink-0 flex items-center gap-2 bg-[#0A0A0A]">
+          <div className="px-5 py-3 border-t border-[#151515] shrink-0 flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0A]">
             <button 
               onClick={onClose} 
-              className="px-4 py-2 rounded-lg border border-[#333] text-sm text-[#999] hover:text-white hover:border-[#555] transition"
+              className="px-4 py-2 rounded-lg border border-[#333] text-sm text-gray-500 dark:text-[#999] hover:text-gray-900 dark:text-white hover:border-[#555] transition"
             >
               {L.close}
             </button>
@@ -1194,7 +1194,7 @@ export function AvatarLibraryModalV2({
                 {/* Download selected */}
                 <button 
                   onClick={downloadSelected}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white text-sm font-semibold transition"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-gray-900 dark:text-white text-sm font-semibold transition"
                 >
                   <Download size={14} />
                   {L.download} ({selected.size})
@@ -1238,7 +1238,7 @@ export function AvatarLibraryModalV2({
                       
                       console.log('✅ [BATCH DELETE] Completo:', successCount, 'sucesso,', errorCount, 'erros');
                     }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-gray-900 dark:text-white text-sm font-semibold transition"
                   >
                     <Trash2 size={14} />
                     Deletar ({selected.size})
@@ -1376,20 +1376,20 @@ export function AvatarLibraryModalV2({
             setFolderModalOpen(false);
           }}
         >
-          <div className="bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full shadow-2xl" onClick={e => {
+          <div className="bg-white dark:bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full shadow-2xl" onClick={e => {
             e.stopPropagation();
             console.log('🎯 [MODAL] Clicou dentro do modal');
           }}>
             {/* Header */}
             <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
-              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+              <h3 className="text-gray-900 dark:text-white font-bold text-sm flex items-center gap-2">
                 <Plus size={16} />
                 {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
               </h3>
               <button onClick={() => {
                 console.log('🎯 [MODAL] Clicou no X - fechando');
                 setFolderModalOpen(false);
-              }} className="text-white/80 hover:text-white transition">
+              }} className="text-gray-900 dark:text-white/80 hover:text-gray-900 dark:text-white transition">
                 <X size={18} />
               </button>
             </div>
@@ -1398,20 +1398,20 @@ export function AvatarLibraryModalV2({
             <div className="p-4 space-y-4">
               {/* Folder Name */}
               <div>
-                <label className="text-xs text-[#999] mb-1 block">Nome da Pasta</label>
+                <label className="text-xs text-gray-500 dark:text-[#999] mb-1 block">Nome da Pasta</label>
                 <input
                   type="text"
                   value={newFolderName}
                   onChange={e => setNewFolderName(e.target.value)}
                   placeholder="Ex: Projeto A"
-                  className="w-full px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-white text-sm outline-none focus:border-[#8B5CF6] transition"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#333] text-gray-900 dark:text-white text-sm outline-none focus:border-[#8B5CF6] transition"
                   autoFocus
                 />
               </div>
               
               {/* Folder Color */}
               <div>
-                <label className="text-xs text-[#999] mb-1 block">Cor</label>
+                <label className="text-xs text-gray-500 dark:text-[#999] mb-1 block">Cor</label>
                 <div className="flex gap-2">
                   {['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899'].map(color => (
                     <button
@@ -1428,11 +1428,11 @@ export function AvatarLibraryModalV2({
               
               {/* Parent Folder (optional) */}
               <div>
-                <label className="text-xs text-[#999] mb-1 block">Pasta Pai (opcional)</label>
+                <label className="text-xs text-gray-500 dark:text-[#999] mb-1 block">Pasta Pai (opcional)</label>
                 <select
                   value={newFolderParent || ''}
                   onChange={e => setNewFolderParent(e.target.value || null)}
-                  className="w-full px-3 py-2 rounded-lg bg-[#1A1A1A] border border-[#333] text-white text-sm outline-none focus:border-[#8B5CF6] transition"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#333] text-gray-900 dark:text-white text-sm outline-none focus:border-[#8B5CF6] transition"
                 >
                   <option value="">Nenhuma (raiz)</option>
                   {folders.map(f => (
@@ -1449,7 +1449,7 @@ export function AvatarLibraryModalV2({
                   e.stopPropagation();
                   setFolderModalOpen(false);
                 }}
-                className="flex-1 py-2.5 rounded-lg border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition text-sm font-medium"
+                className="flex-1 py-2.5 rounded-lg border border-[#333] text-gray-500 dark:text-[#999] hover:text-gray-900 dark:text-white hover:border-[#666] transition text-sm font-medium"
               >
                 Cancelar
               </button>
@@ -1458,7 +1458,7 @@ export function AvatarLibraryModalV2({
                   e.stopPropagation();
                   createFolder();
                 }}
-                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition text-sm flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-gray-900 dark:text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition text-sm flex items-center justify-center gap-2"
               >
                 <Plus size={16} />
                 {editingFolder ? 'Salvar' : 'Criar Pasta'}
@@ -1472,14 +1472,14 @@ export function AvatarLibraryModalV2({
       {/* Download Preview Modal - Compact popup over gallery */}
       {downloadPreview && (
         <div className="fixed inset-0 z-[10001] bg-black/80 flex items-center justify-center p-4" onClick={() => setDownloadPreview(null)}>
-          <div className="bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
-              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+              <h3 className="text-gray-900 dark:text-white font-bold text-sm flex items-center gap-2">
                 <Download size={16} />
                 Baixar Personagem
               </h3>
-              <button onClick={() => setDownloadPreview(null)} className="text-white/80 hover:text-white transition">
+              <button onClick={() => setDownloadPreview(null)} className="text-gray-900 dark:text-white/80 hover:text-gray-900 dark:text-white transition">
                 <X size={18} />
               </button>
             </div>
@@ -1491,14 +1491,14 @@ export function AvatarLibraryModalV2({
                 alt={downloadPreview.name}
                 className="w-full aspect-[3/4] object-cover rounded-lg border border-[#333]"
               />
-              <p className="text-white text-center mt-2 font-semibold">{downloadPreview.name}</p>
+              <p className="text-gray-900 dark:text-white text-center mt-2 font-semibold">{downloadPreview.name}</p>
             </div>
             
             {/* Download Button */}
             <div className="px-4 pb-4 flex gap-2">
               <button
                 onClick={() => setDownloadPreview(null)}
-                className="flex-1 py-2.5 rounded-lg border border-[#333] text-[#999] hover:text-white hover:border-[#666] transition text-sm font-medium"
+                className="flex-1 py-2.5 rounded-lg border border-[#333] text-gray-500 dark:text-[#999] hover:text-gray-900 dark:text-white hover:border-[#666] transition text-sm font-medium"
               >
                 Cancelar
               </button>
@@ -1535,7 +1535,7 @@ export function AvatarLibraryModalV2({
                     toast.error('Erro ao baixar. Imagem aberta em nova aba.');
                   }
                 }}
-                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-gray-900 dark:text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
               >
                 <Download size={16} />
                 Baixar Agora
