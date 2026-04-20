@@ -638,10 +638,10 @@ export function AvatarLibraryModalV2({
           className="w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-white dark:bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl"
         >
           {/* Header */}
-          <div className="px-5 py-3 border-b border-[#151515] flex items-center gap-3 shrink-0 bg-gradient-to-r from-[#0D0D0D] to-[#1A1A1A]">
-            <Users size={18} className="text-[#8B5CF6]" />
+          <div className="px-5 py-3 border-b border-gray-200 dark:border-[#151515] flex items-center gap-3 shrink-0 bg-white dark:bg-gradient-to-r dark:from-[#0D0D0D] dark:to-[#1A1A1A]">
+            <Users size={18} className="text-violet-600 dark:text-[#8B5CF6]" />
             <h3 className="text-base font-bold text-gray-900 dark:text-white flex-1">{L.title}</h3>
-            <span className="text-xs text-gray-500 dark:text-[#888] bg-gray-100 dark:bg-[#1A1A1A] px-2 py-1 rounded">{library.length} total</span>
+            <span className="text-xs text-gray-600 dark:text-[#888] bg-gray-100 dark:bg-[#1A1A1A] px-2 py-1 rounded">{library.length} total</span>
             {selected.size > 0 && (
               <span className="text-xs text-[#8B5CF6] bg-[#8B5CF6]/10 px-2 py-1 rounded font-semibold">
                 {selected.size} {L.selected}
@@ -677,7 +677,7 @@ export function AvatarLibraryModalV2({
               <Plus size={14} />
               <span>Nova Pasta</span>
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:bg-[#1A1A1A] transition">
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#1A1A1A] transition">
               <X size={18} className="text-gray-500 dark:text-[#999]" />
             </button>
           </div>
@@ -729,7 +729,7 @@ export function AvatarLibraryModalV2({
                           <button
                             key={folder.id}
                             onClick={() => moveAvatarsToFolder(folder.id)}
-                            className="w-full px-4 py-2 text-left text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:bg-[#2A2A2A] transition flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-xs text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-[#2A2A2A] transition flex items-center gap-2"
                           >
                             <div 
                               className="w-3 h-3 rounded-full" 
@@ -744,7 +744,7 @@ export function AvatarLibraryModalV2({
                           setMoveToFolderMenuOpen(false);
                           setFolderModalOpen(true);
                         }}
-                        className="w-full px-4 py-2 text-left text-xs text-[#8B5CF6] hover:bg-gray-200 dark:bg-[#2A2A2A] transition border-t border-[#333]"
+                        className="w-full px-4 py-2 text-left text-xs text-[#8B5CF6] hover:bg-gray-200 dark:hover:bg-[#2A2A2A] transition border-t border-gray-200 dark:border-[#333]"
                       >
                         + Criar Nova Pasta
                       </button>
@@ -781,7 +781,7 @@ export function AvatarLibraryModalV2({
                 <select
                   value={styleFilter}
                   onChange={e => setStyleFilter(e.target.value)}
-                  className="pl-9 pr-8 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
+                  className="pl-9 pr-8 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] text-xs text-gray-900 dark:text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                     backgroundRepeat: 'no-repeat',
@@ -803,7 +803,7 @@ export function AvatarLibraryModalV2({
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value)}
-                  className="pl-9 pr-8 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
+                  className="pl-9 pr-8 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] text-xs text-gray-900 dark:text-white outline-none focus:border-[#8B5CF6]/40 transition cursor-pointer appearance-none"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                     backgroundRepeat: 'no-repeat',
@@ -818,7 +818,7 @@ export function AvatarLibraryModalV2({
               </div>
               
               {/* Checkboxes */}
-              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] text-xs text-gray-900 dark:text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
                 <input
                   type="checkbox"
                   checked={has360Filter}
@@ -829,7 +829,7 @@ export function AvatarLibraryModalV2({
                 <span>Apenas com 360°</span>
               </label>
               
-              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#2A2A2A] text-xs text-gray-900 dark:text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
+              <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-gray-200 dark:border-[#2A2A2A] text-xs text-gray-900 dark:text-white cursor-pointer hover:border-[#8B5CF6]/40 transition">
                 <input
                   type="checkbox"
                   checked={hasVoiceFilter}
@@ -887,7 +887,7 @@ export function AvatarLibraryModalV2({
           {/* Main Content Area with Sidebar */}
           <div className="flex-1 flex overflow-hidden">
             {/* Folders Sidebar */}
-            <div className="w-48 border-r border-[#151515] bg-gray-50 dark:bg-[#0A0A0A] overflow-y-auto p-3 space-y-0.5">
+            <div className="w-48 border-r border-gray-200 dark:border-[#151515] bg-gray-50 dark:bg-[#0A0A0A] overflow-y-auto p-3 space-y-0.5">
               <div className="text-[10px] font-bold text-gray-400 dark:text-[#666] uppercase mb-1.5">
                 Pastas ({folders.filter(f => !f.parent_id).length})
                 {folders.length === 0 && <span className="text-gray-500 dark:text-[#999] normal-case"> - Nenhuma</span>}
@@ -899,7 +899,7 @@ export function AvatarLibraryModalV2({
                 className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 ${
                   currentFolder === null 
                     ? 'bg-[#8B5CF6]/20 text-[#8B5CF6] font-semibold border border-[#8B5CF6]/40' 
-                    : 'text-gray-500 dark:text-[#999] hover:bg-gray-100 dark:bg-[#1A1A1A] hover:text-gray-900 dark:text-white'
+                    : 'text-gray-500 dark:text-[#999] hover:bg-gray-100 dark:hover:bg-[#1A1A1A] hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <Users size={11} />
@@ -951,7 +951,7 @@ export function AvatarLibraryModalV2({
                           className={`flex-1 text-left px-2 py-1.5 rounded-md text-[10px] transition flex items-center gap-1.5 min-w-0 ${
                             isActive 
                               ? 'bg-[#8B5CF6]/20 text-gray-900 dark:text-white font-semibold border border-[#8B5CF6]/40' 
-                              : 'text-gray-500 dark:text-[#999] hover:bg-gray-100 dark:bg-[#1A1A1A] hover:text-gray-900 dark:text-white'
+                              : 'text-gray-500 dark:text-[#999] hover:bg-gray-100 dark:hover:bg-[#1A1A1A] hover:text-gray-900 dark:hover:text-white'
                           }`}
                         >
                           <div 
@@ -1158,12 +1158,12 @@ export function AvatarLibraryModalV2({
                             onBlur={() => handleInlineRename(av.id)}
                             onKeyDown={e => { if (e.key === 'Enter') handleInlineRename(av.id); if (e.key === 'Escape') setRenamingAvatarId(null); }}
                             onClick={e => e.stopPropagation()}
-                            className="w-full bg-black/60 border border-purple-500 rounded px-1 py-0.5 text-xs text-gray-900 dark:text-white outline-none"
+                            className="w-full bg-black/60 border border-purple-500 rounded px-1 py-0.5 text-xs text-white outline-none"
                             data-testid={`rename-input-${av.id}`}
                           />
                         ) : (
                           <p
-                            className="text-xs text-gray-900 dark:text-white font-semibold truncate cursor-pointer hover:text-purple-300 transition"
+                            className="text-xs text-white font-semibold truncate cursor-pointer hover:text-purple-300 transition drop-shadow-md"
                             onDoubleClick={e => { e.stopPropagation(); setRenamingAvatarId(av.id); setRenameValue(av.name || ''); }}
                             title="Duplo-clique para renomear"
                           >
@@ -1181,10 +1181,10 @@ export function AvatarLibraryModalV2({
           </div>
 
           {/* Footer Actions */}
-          <div className="px-5 py-3 border-t border-[#151515] shrink-0 flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0A]">
+          <div className="px-5 py-3 border-t border-gray-200 dark:border-[#151515] shrink-0 flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0A]">
             <button 
               onClick={onClose} 
-              className="px-4 py-2 rounded-lg border border-[#333] text-sm text-gray-500 dark:text-[#999] hover:text-gray-900 dark:text-white hover:border-[#555] transition"
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#333] text-sm text-gray-700 dark:text-[#999] hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-[#555] transition"
             >
               {L.close}
             </button>

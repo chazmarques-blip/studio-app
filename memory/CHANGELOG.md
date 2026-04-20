@@ -1,5 +1,34 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 13 — Fix: /dashboard → /studio + Light mode legibilidade)
+
+### Bug 1: Usuário caía no Dashboard antigo após login
+- **Causa raiz:** `PublicRoute` em `App.js` redirecionava para `/dashboard` (DashboardStudio antigo com saudação "Bom dia" + cards) em vez de `/studio` (nova lista compacta).
+- **Fix:**
+  - `App.js`: `PublicRoute` agora redireciona para `/studio` após login.
+  - `App.js`: Rota legada `/dashboard` agora faz `<Navigate to="/studio" replace />` — preserva compatibilidade com links antigos (`Onboarding`, `OnboardingAgentLang`, `Marketing` btn voltar).
+- **Resultado:** Login → lista compacta de Projetos, direto. Nenhuma mudança nos links internos existentes.
+
+### Bug 2: Galeria de Personagens ilegível em Modo Claro
+- **Causa raiz:** `AvatarLibraryModalV2.jsx` tinha várias cores hex hardcoded (`#0D0D0D`, `#1A1A1A`, `#151515`, `#2A2A2A`, `#1E1E1E`) sem o prefixo `dark:` — no Light Mode mostravam texto escuro em fundos escuros ou texto branco em fundos brancos. Também vários `dark:bg-[...]` estavam sem `hover:` prefix causando bug CSS.
+- **Fixes aplicados:**
+  - Header: `bg-gradient-to-r from-[#0D0D0D] to-[#1A1A1A]` → `bg-white dark:bg-gradient-to-r dark:from-[#0D0D0D] dark:to-[#1A1A1A]`.
+  - Overlay de nome dos cards (sempre sobre gradiente preto): `text-gray-900 dark:text-white` → `text-white` fixo com `drop-shadow-md`.
+  - Bordas, sidebar de pastas, inputs de busca, selects de filtros, checkboxes 360°/Voz, botão Fechar do rodapé: todos com pares `bg-gray-X dark:bg-[#...]` e `border-gray-X dark:border-[#...]` corretos.
+  - Corrigido bug `hover:bg-gray-200 dark:bg-[#2A2A2A]` → `hover:bg-gray-200 dark:hover:bg-[#2A2A2A]` (faltava prefixo `hover:` no dark variant) em 4 locais.
+  - Removido bloco duplicado no final do arquivo (tail corrompido de edição anterior).
+
+### Arquivos modificados
+- `frontend/src/App.js` (linhas 93, 135-136)
+- `frontend/src/components/pipeline/AvatarLibraryModalV2.jsx` (~14 pares de classes corrigidas + remoção de tail duplicado)
+
+### Testes
+- Lint JS: ✅ No issues found
+- Screenshot Light Mode `/studio?gallery=1`: ✅ Título, nomes dos personagens e controles legíveis
+- Screenshot Dark Mode `/studio?gallery=1`: ✅ Mantido com gradiente escuro original
+- Login via formulário: ✅ Redireciona direto para `/studio` com 66 projetos visíveis
+
+
 ## 2026-04-20 (Session 12 — Fase 2 Finalização: ProjectRow reescrito)
 
 ### Ajuste final — layout aprovado aplicado

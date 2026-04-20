@@ -90,7 +90,7 @@ function PublicRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (user) {
-    return <Navigate to={user.onboarding_completed ? '/dashboard' : '/onboarding'} replace />;
+    return <Navigate to={user.onboarding_completed ? '/studio' : '/onboarding'} replace />;
   }
   return children;
 }
@@ -132,7 +132,8 @@ function App() {
           <Route path="/onboarding/agent-lang" element={<ProtectedRoute><OnboardingAgentLang /></ProtectedRoute>} />
           {/* App with bottom nav */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* Legacy /dashboard → redirect to new compact /studio (Projetos) */}
+            <Route path="/dashboard" element={<Navigate to="/studio" replace />} />
             <Route path="/studio" element={<StudioPage />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/agents" element={<Agents />} />
