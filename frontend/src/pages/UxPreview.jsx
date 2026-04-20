@@ -76,28 +76,28 @@ function DarkMockup() {
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-14 px-8 flex items-center justify-between border-b border-[#2A2442]">
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-semibold tracking-tight">Projetos</h1>
-              <span className="text-xs font-mono text-[#6B647F]">66</span>
+          <header className="h-12 px-6 flex items-center justify-between border-b border-[#2A2442]">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[15px] font-semibold tracking-tight">Projetos</h1>
+              <span className="text-[10px] font-mono text-[#6B647F]">66</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B647F]" />
+                <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B647F]" />
                 <input
                   placeholder="Buscar..."
-                  className="w-64 h-9 pl-9 pr-3 rounded-lg bg-[#1A1430] border border-[#2A2442] text-xs text-white placeholder:text-[#6B647F] outline-none focus:border-violet-500/60 transition"
+                  className="w-56 h-7 pl-7 pr-2.5 rounded-md bg-[#1A1430] border border-[#2A2442] text-[11px] text-white placeholder:text-[#6B647F] outline-none focus:border-violet-500/60 transition"
                 />
               </div>
-              <button className="h-9 px-4 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold hover:brightness-110 transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(249,115,22,0.35)]">
-                <Plus size={14} strokeWidth={2.5} /> Novo Projeto
+              <button className="h-7 px-3 rounded-md bg-gradient-to-r from-orange-500 to-orange-600 text-white text-[11px] font-semibold hover:brightness-110 transition flex items-center gap-1 shadow-[0_0_12px_rgba(249,115,22,0.3)]">
+                <Plus size={12} strokeWidth={2.5} /> Novo Projeto
               </button>
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto px-8 py-6">
+          <div className="flex-1 overflow-auto px-6 py-5">
             {/* Filter pills */}
-            <div className="flex items-center gap-1 mb-6" style={{ fontFamily: "'Manrope', system-ui" }}>
+            <div className="flex items-center gap-1 mb-4" style={{ fontFamily: "'Manrope', system-ui" }}>
               {[
                 { k: 'all', l: 'Todos', n: MOCK_PROJECTS.length, I: Folder },
                 { k: 'video', l: 'Vídeos', n: MOCK_PROJECTS.filter(p => p.type === 'video').length, I: Video },
@@ -109,12 +109,12 @@ function DarkMockup() {
                   <button
                     key={k}
                     onClick={() => setFilter(k)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition ${
                       active ? 'bg-violet-500/15 text-violet-200 border border-violet-500/30' : 'text-[#A3A3B2] hover:text-white hover:bg-white/5 border border-transparent'
                     }`}
                   >
-                    <I size={11} /> {l}
-                    <span className={`${active ? 'text-violet-300/70' : 'text-[#6B647F]'} font-mono text-[10px]`}>{n}</span>
+                    <I size={10} /> {l}
+                    <span className={`${active ? 'text-violet-300/70' : 'text-[#6B647F]'} font-mono text-[9px]`}>{n}</span>
                   </button>
                 );
               })}
@@ -254,27 +254,27 @@ function LightMockup() {
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-14 px-8 flex items-center justify-between border-b border-[#EEECF5] bg-white">
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-semibold tracking-tight">Projetos</h1>
-              <span className="text-xs font-mono text-gray-400">66</span>
+          <header className="h-12 px-6 flex items-center justify-between border-b border-[#EEECF5] bg-white">
+            <div className="flex items-center gap-2">
+              <h1 className="text-[15px] font-semibold tracking-tight">Projetos</h1>
+              <span className="text-[10px] font-mono text-gray-400">66</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   placeholder="Buscar..."
-                  className="w-64 h-9 pl-9 pr-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-violet-400 transition"
+                  className="w-56 h-7 pl-7 pr-2.5 rounded-md bg-gray-50 border border-gray-200 text-[11px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-violet-400 transition"
                 />
               </div>
-              <button className="h-9 px-4 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold hover:brightness-110 transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(249,115,22,0.3)]">
-                <Plus size={14} strokeWidth={2.5} /> Novo Projeto
+              <button className="h-7 px-3 rounded-md bg-gradient-to-r from-orange-500 to-orange-600 text-white text-[11px] font-semibold hover:brightness-110 transition flex items-center gap-1 shadow-[0_0_12px_rgba(249,115,22,0.25)]">
+                <Plus size={12} strokeWidth={2.5} /> Novo Projeto
               </button>
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto px-8 py-6 bg-[#FAFAFC]">
-            <div className="flex items-center gap-1 mb-6" style={{ fontFamily: "'Manrope', system-ui" }}>
+          <div className="flex-1 overflow-auto px-6 py-5 bg-[#FAFAFC]">
+            <div className="flex items-center gap-1 mb-4" style={{ fontFamily: "'Manrope', system-ui" }}>
               {[
                 { k: 'all', l: 'Todos', n: MOCK_PROJECTS.length, I: Folder },
                 { k: 'video', l: 'Vídeos', n: MOCK_PROJECTS.filter(p => p.type === 'video').length, I: Video },
@@ -286,12 +286,12 @@ function LightMockup() {
                   <button
                     key={k}
                     onClick={() => setFilter(k)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition ${
                       active ? 'bg-violet-100 text-violet-800 border border-violet-200' : 'text-gray-600 hover:text-gray-900 hover:bg-white border border-transparent hover:border-gray-200'
                     }`}
                   >
-                    <I size={11} /> {l}
-                    <span className={`${active ? 'text-violet-600' : 'text-gray-400'} font-mono text-[10px]`}>{n}</span>
+                    <I size={10} /> {l}
+                    <span className={`${active ? 'text-violet-600' : 'text-gray-400'} font-mono text-[9px]`}>{n}</span>
                   </button>
                 );
               })}
