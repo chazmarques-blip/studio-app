@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import {
   Home, Users, Bot, Settings, BookOpen, Video, Layers, Plus, Search,
-  MoreHorizontal, Folder, ChevronLeft, Check, Zap,
+  MoreHorizontal, Folder, ChevronLeft, Check, Zap, FileText, Clapperboard, Loader2 as Loader,
 } from 'lucide-react';
 
 // Fake projects used to demonstrate layout density + card styling
 const MOCK_PROJECTS = [
-  { id: 1, name: 'Lila e seus Brinquedos Fantásticos', type: 'book', thumb: 'https://studiox-storage.emergentagent.com/sample-covers/lila.png', status: 'PDF pronto', when: 'Hoje' },
-  { id: 2, name: 'Abraão, Isaque e o Cordeiro', type: 'book', thumb: 'https://studiox-storage.emergentagent.com/sample-covers/abraao.png', status: 'PDF pronto', when: 'Ontem' },
-  { id: 3, name: 'A Raposinha Generosa', type: 'book', thumb: 'https://studiox-storage.emergentagent.com/sample-covers/raposa.png', status: 'PDF pronto', when: 'Ontem' },
-  { id: 4, name: 'Manual do Pulmeranea', type: 'book', thumb: null, status: 'Preflight OK', when: '2 dias' },
-  { id: 5, name: 'Aventura no Bosque — Piloto', type: 'video', thumb: null, status: '6 cenas · 3 min', when: '3 dias' },
-  { id: 6, name: 'Saga do Relógio Antigo', type: 'hybrid', thumb: null, status: 'Híbrido · Em produção', when: '4 dias' },
-  { id: 7, name: 'O Oráculo de Ferro', type: 'video', thumb: null, status: '12 cenas · 8 min', when: 'semana' },
-  { id: 8, name: 'Pequenos Exploradores do Mar', type: 'book', thumb: null, status: 'Ilustrações 80%', when: 'semana' },
+  { id: 1, name: 'Lila e seus Brinquedos Fantásticos', type: 'book', thumb: null, status: 'PDF pronto', when: 'Hoje', characters: 3, pages: 40, done: true },
+  { id: 2, name: 'Abraão, Isaque e o Cordeiro — Picturebook', type: 'book', thumb: null, status: 'PDF pronto', when: 'Ontem', characters: 5, pages: 32, done: true },
+  { id: 3, name: 'A Raposinha Generosa', type: 'book', thumb: null, status: 'PDF pronto', when: 'Ontem', characters: 4, pages: 40, done: true },
+  { id: 4, name: 'Manual do Pulmeranea', type: 'book', thumb: null, status: 'Ilustrações 80%', when: '2 dias', characters: 3, pages: 36, done: false },
+  { id: 5, name: 'Aventura no Bosque — Piloto', type: 'video', thumb: null, status: '6 cenas · 3 min', when: '3 dias', characters: 4, scenes: 6, done: true },
+  { id: 6, name: 'Saga do Relógio Antigo', type: 'hybrid', thumb: null, status: 'Em produção', when: '4 dias', characters: 7, scenes: 14, done: false },
+  { id: 7, name: 'O Oráculo de Ferro', type: 'video', thumb: null, status: '12 cenas · 8 min', when: 'semana', characters: 9, scenes: 12, done: true },
+  { id: 8, name: 'Pequenos Exploradores do Mar', type: 'book', thumb: null, status: 'Outline aprovado', when: 'semana', characters: 5, pages: 28, done: false },
 ];
 
 const TYPE_META = {
@@ -127,28 +127,52 @@ function DarkMockup() {
                 return (
                   <div
                     key={p.id}
-                    className={`group flex items-center gap-3 px-3 py-1.5 hover:bg-white/5 transition cursor-pointer ${
+                    className={`group flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition cursor-pointer ${
                       isLast ? '' : 'border-b border-[#1a1a1a]'
                     }`}
                   >
-                    {/* Thumbnail — larger */}
-                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center">
+                    {/* Thumbnail */}
+                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center relative">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
                         <meta.Icon size={20} strokeWidth={1.25} className="text-[#3a3a3a]" />
+                      )}
+                      {p.done && (
+                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#0f0f0f]" title="Pronto" />
                       )}
                     </div>
 
                     {/* Name + meta */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[13px] font-semibold text-white truncate leading-tight">{p.name}</h3>
-                      <div className="flex items-center gap-2 text-[11px] text-[#A3A3A3] mt-0.5">
-                        <span className={`inline-flex items-center gap-1 ${meta.dark}`}>
+                      <div className="flex items-center gap-2 text-[11px] text-[#A3A3A3] mt-1 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 font-medium ${meta.dark}`}>
                           <meta.Icon size={10} /> {meta.label}
                         </span>
                         <span className="text-[#525252]">·</span>
-                        <span>{p.status}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Users size={10} className="text-[#737373]" />
+                          {p.characters} {p.characters === 1 ? 'personagem' : 'personagens'}
+                        </span>
+                        <span className="text-[#525252]">·</span>
+                        {p.pages && (
+                          <span className="inline-flex items-center gap-1">
+                            <FileText size={10} className="text-[#737373]" />
+                            {p.pages} páginas
+                          </span>
+                        )}
+                        {p.scenes && (
+                          <span className="inline-flex items-center gap-1">
+                            <Clapperboard size={10} className="text-[#737373]" />
+                            {p.scenes} cenas
+                          </span>
+                        )}
+                        <span className="text-[#525252]">·</span>
+                        <span className={`inline-flex items-center gap-1 ${p.done ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {p.done ? <Check size={10} /> : <Loader size={10} />}
+                          {p.status}
+                        </span>
                       </div>
                     </div>
 
@@ -279,28 +303,52 @@ function LightMockup() {
                 return (
                   <div
                     key={p.id}
-                    className={`group flex items-center gap-3 px-3 py-1.5 hover:bg-gray-50 transition cursor-pointer ${
+                    className={`group flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition cursor-pointer ${
                       isLast ? '' : 'border-b border-gray-100'
                     }`}
                   >
-                    {/* Thumbnail — larger */}
-                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center">
+                    {/* Thumbnail */}
+                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center relative">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
                         <meta.Icon size={20} strokeWidth={1.25} className="text-gray-300" />
+                      )}
+                      {p.done && (
+                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-white" title="Pronto" />
                       )}
                     </div>
 
                     {/* Name + meta */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[13px] font-semibold text-gray-900 truncate leading-tight">{p.name}</h3>
-                      <div className="flex items-center gap-2 text-[11px] text-gray-600 mt-0.5">
-                        <span className={`inline-flex items-center gap-1 ${meta.light}`}>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-600 mt-1 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 font-medium ${meta.light}`}>
                           <meta.Icon size={10} /> {meta.label}
                         </span>
                         <span className="text-gray-300">·</span>
-                        <span>{p.status}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Users size={10} className="text-gray-400" />
+                          {p.characters} {p.characters === 1 ? 'personagem' : 'personagens'}
+                        </span>
+                        <span className="text-gray-300">·</span>
+                        {p.pages && (
+                          <span className="inline-flex items-center gap-1">
+                            <FileText size={10} className="text-gray-400" />
+                            {p.pages} páginas
+                          </span>
+                        )}
+                        {p.scenes && (
+                          <span className="inline-flex items-center gap-1">
+                            <Clapperboard size={10} className="text-gray-400" />
+                            {p.scenes} cenas
+                          </span>
+                        )}
+                        <span className="text-gray-300">·</span>
+                        <span className={`inline-flex items-center gap-1 font-medium ${p.done ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {p.done ? <Check size={10} /> : <Loader size={10} />}
+                          {p.status}
+                        </span>
                       </div>
                     </div>
 
