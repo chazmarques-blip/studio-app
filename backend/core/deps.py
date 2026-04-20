@@ -55,7 +55,13 @@ async def get_current_user(authorization: str = Header(None)):
     token = authorization.split(" ")[1]
     try:
         payload = pyjwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user = supabase.table("users").select("*").eq("id", payload["sub"]).execute()
+        # Offload sync Supabase call to a worker thread so it doesn't block the event loop.
+        # Without this, every authenticated request stalls all other async requests
+        # for 100–300ms — causing cascading timeouts during heavy pipeline runs.
+        import asyncio
+        user = await asyncio.to_thread(
+            lambda: supabase.table("users").select("*").eq("id", payload["sub"]).execute()
+        )
         if not user.data:
             raise HTTPException(status_code=401, detail="User not found")
         return user.data[0]
@@ -66,7 +72,10 @@ async def get_current_user(authorization: str = Header(None)):
 
 
 async def get_tenant(user):
-    tenant = supabase.table("tenants").select("*").eq("owner_id", user["id"]).execute()
+    import asyncio
+    tenant = await asyncio.to_thread(
+        lambda: supabase.table("tenants").select("*").eq("owner_id", user["id"]).execute()
+    )
     if not tenant.data:
         raise HTTPException(status_code=404, detail="No tenant found. Create one first.")
     return tenant.data[0]

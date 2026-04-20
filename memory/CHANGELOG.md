@@ -1,5 +1,24 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 7 — P0 Fix: Event Loop Unblocking para Login/Auth)
+
+### Bugfix P0 — Timeout de login durante pipelines pesadas
+
+**Causa raiz:** Rotas `async def` em `auth.py` e as dependências `get_current_user` / `get_current_tenant` (em `core/deps.py`) faziam chamadas Supabase síncronas (`.execute()`) e bcrypt (`pwd_context.verify`) diretamente no event loop. Cada chamada bloqueava TODAS as requisições async por 100–600ms. Sob carga (várias pipelines de livro/vídeo + logins simultâneos), o event loop ficava engasgado e os requests empilhavam, causando timeouts visíveis em `/api/auth/login`.
+
+**Fix:**
+- `core/deps.py` — `get_current_user` e `get_tenant` agora envolvem `supabase.table(...).execute()` em `asyncio.to_thread(...)`. Isso libera o event loop imediatamente enquanto o driver sync roda no threadpool padrão do FastAPI.
+- `routers/auth.py` — helper `_run(fn, *args, **kwargs)` centraliza o offload. Todas as chamadas síncronas de Supabase e bcrypt (`hash`, `verify`) em `signup`, `login`, `auth/me`, `auth/profile`, `tenants` (POST/GET) foram envolvidas.
+
+**Validação (teste de carga):**
+- 1 login: 1.5s (baseline — bcrypt domina).
+- 10 logins concorrentes: 8.3s total (antes serializavam, podia dar timeout).
+- 5 GETs protegidos + 5 logins em paralelo: **todos 200 em 8.5s total** (todos completam juntos, não em sequência — prova que event loop não está mais bloqueado).
+
+**Escopo deliberadamente mantido:** `core/cache.ProjectCache.get_settings` NÃO foi convertido — 95%+ dos hits são cache (retorno imediato), e envolver teria impacto em TODOS os endpoints do studio (mudança intrusiva). Observação para monitoramento futuro: se `/api/studio/projects` voltar a timeoutar, converter cache também.
+
+---
+
 ## 2026-04-20 (Session 6 — Edição Manual de Prosa + Filtros de Projeto + Banner Híbrido)
 
 ### Bugfix P0 — "Editar prosa manualmente não funciona"
