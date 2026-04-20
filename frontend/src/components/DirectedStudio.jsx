@@ -1,6 +1,7 @@
 // FORCE REBUILD v1.0
 import { useState, useEffect, useRef, memo, Fragment, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Send, Users, Film, Play, Pause, Sparkles, Download, X, ChevronDown, ChevronLeft, ChevronRight, Plus, Volume2, PenTool, RefreshCw, Check, MessageSquare, Clapperboard, Eye, Camera, Copy, Edit3, Save, Wand2, Clock, Trash2, BarChart3, BookOpen, Globe, Maximize2, FileText, Image as ImageIcon, Mic, Music, GripVertical, Search, CheckCircle2, Minus, Zap, Settings } from 'lucide-react';
@@ -406,6 +407,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const { i18n } = useTranslation();
   const lang = i18n.language?.substring(0, 2) || 'pt';
   const studioCtx = useStudioProduction();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(initialProjectId ? 1 : 0); // Start at step 1 if project provided
   const [projectId, setProjectId] = useState(initialProjectId);
@@ -446,6 +448,7 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [animationSub, setAnimationSub] = useState('pixar_3d');
   const [videoEngine, setVideoEngine] = useState('sora'); // NEW: Sora 2 or Kling AI
   const [productionQuality, setProductionQuality] = useState('fast'); // "fast" (Sora 2 720p) | "cinema" (Sora 2 Pro 1792x1024)
+  const [outputMode, setOutputMode] = useState('video'); // 'video' | 'book' | 'both' — for hybrid navigation banner
   // Continuity Mode removed - now using QC Team for continuity checks
   const [regenScene, setRegenScene] = useState(null);
   const [editingScene, setEditingScene] = useState(null);
@@ -656,6 +659,7 @@ export const DirectedStudio = memo(function DirectedStudio({
         setChatMessages(p.chat_messages || []);
         setVideoEngine(p.video_engine || 'sora');
         setProductionQuality(p.production_quality || 'fast');
+        setOutputMode(p.output_mode || 'video');
         
         // Determine step based on project state
         // PRIORIDADE: Status complete ou tem vídeos = ir para resultado
@@ -1936,6 +1940,28 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   return (
     <div className="space-y-3 px-4 md:px-6 lg:px-8" data-testid="directed-studio">{/* Added responsive padding */}
+      {/* Hybrid Project Banner — when output_mode === 'both', offer direct jump to BookStudio */}
+      {step >= 1 && outputMode === 'both' && projectId && (
+        <div
+          className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200 shadow-sm"
+          data-testid="hybrid-project-banner"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <BookOpen size={16} className="text-amber-700 shrink-0" />
+            <p className="text-xs text-amber-900 truncate">
+              <b>Projeto híbrido</b> — este projeto também gera um livro. Acompanhe a BookFactory em paralelo.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate(`/studio/book/${projectId}`)}
+            data-testid="btn-open-book-studio"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium transition"
+          >
+            <BookOpen size={12} /> Ver livro
+            <ChevronRight size={12} />
+          </button>
+        </div>
+      )}
       {/* Step Navigation — only when inside a project */}
       {step >= 1 && (
         <div className="flex items-center justify-between mb-1">

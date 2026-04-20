@@ -402,6 +402,7 @@ export default function StudioPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [projectTypeFilter, setProjectTypeFilter] = useState('all'); // 'all' | 'video' | 'book' | 'both'
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   
   // Global Character Library
@@ -1067,10 +1068,31 @@ export default function StudioPage() {
     setSearchParams({});
   };
 
-  // Filter projects
-  const filteredProjects = projects.filter(p => 
-    p.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter projects — by search term AND by output type
+  const projectKind = (p) => {
+    // Infer the output type of a project
+    const mode = p?.output_mode;
+    if (mode === 'book' || mode === 'video' || mode === 'both') return mode;
+    // Back-compat: older projects (no output_mode) → infer by presence of book_bible
+    if (p?.project_bible?.book_bible) return 'book';
+    return 'video';
+  };
+
+  const projectCounts = projects.reduce(
+    (acc, p) => {
+      const k = projectKind(p);
+      acc.all += 1;
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    },
+    { all: 0, video: 0, book: 0, both: 0 },
   );
+
+  const filteredProjects = projects.filter((p) => {
+    if (!p.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (projectTypeFilter === 'all') return true;
+    return projectKind(p) === projectTypeFilter;
+  });
 
   if (loading) {
     return (
@@ -1775,7 +1797,7 @@ export default function StudioPage() {
           )}
           
           {/* Search */}
-          <div className="mb-6">
+          <div className="mb-4">
             <div className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900/50" />
               <input 
@@ -1786,6 +1808,39 @@ export default function StudioPage() {
                 className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-white/40 outline-none focus:border-orange-500/50 transition"
               />
             </div>
+          </div>
+
+          {/* Type Filter Pills */}
+          <div className="mb-6 flex items-center gap-2 flex-wrap" data-testid="project-type-filter">
+            {[
+              { key: 'all', label: 'Tudo', icon: Folder, count: projectCounts.all },
+              { key: 'video', label: 'Vídeos', icon: Video, count: projectCounts.video },
+              { key: 'book', label: 'Livros', icon: BookOpen, count: projectCounts.book },
+              { key: 'both', label: 'Híbridos', icon: Layers, count: projectCounts.both },
+            ].map(({ key, label, icon: Icon, count }) => {
+              const active = projectTypeFilter === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setProjectTypeFilter(key)}
+                  data-testid={`filter-${key}`}
+                  disabled={count === 0 && key !== 'all'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                    active
+                      ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300 hover:bg-orange-50'
+                  } ${count === 0 && key !== 'all' ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                  <Icon size={12} />
+                  {label}
+                  <span className={`ml-0.5 font-mono text-[10px] px-1.5 py-0.5 rounded-full ${
+                    active ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
         {/* Projects List */}

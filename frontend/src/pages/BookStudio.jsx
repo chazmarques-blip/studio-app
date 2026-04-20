@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   BookOpen, Sparkles, Palette, Image as ImageIcon, Edit3, Eye, Download, Check,
-  ChevronRight, ChevronLeft, RefreshCw, Loader2, AlertCircle, FileCheck, Users, Wand2,
+  ChevronRight, ChevronLeft, RefreshCw, Loader2, AlertCircle, FileCheck, Users, Wand2, Save, X,
 } from 'lucide-react';
 import PdfInlineViewer from '../components/PdfInlineViewer';
 
@@ -300,19 +300,39 @@ export default function BookStudio() {
   const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState(null);
+  const [pdfProgress, setPdfProgress] = useState({ loaded: 0, total: 0 });
 
   // Fetch PDF via proxy as blob URL — used by inline viewer (iframe can't send auth headers)
+  // Streams the body to report progress (14MB+ PDFs can take 10-30s).
   const loadPdfBlob = useCallback(async () => {
     if (!projectId || !bookState?.pdf_url) return;
     const token = localStorage.getItem(TOKEN_KEY) || '';
     setPdfLoading(true);
     setPdfError(null);
+    setPdfProgress({ loaded: 0, total: bookState?.pdf_size_bytes || 0 });
     try {
       const r = await fetch(`${API}/api/studio/projects/${projectId}/book/download-pdf?inline=1`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const blob = await r.blob();
+      const total = Number(r.headers.get('Content-Length') || bookState?.pdf_size_bytes || 0);
+      const reader = r.body?.getReader?.();
+      let blob;
+      if (reader) {
+        const chunks = [];
+        let loaded = 0;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.byteLength;
+          setPdfProgress({ loaded, total });
+        }
+        blob = new Blob(chunks, { type: 'application/pdf' });
+      } else {
+        blob = await r.blob();
+      }
       const url = window.URL.createObjectURL(blob);
       setPdfBlobUrl((old) => {
         if (old) try { window.URL.revokeObjectURL(old); } catch (e) { /* noop */ }
@@ -323,7 +343,7 @@ export default function BookStudio() {
     } finally {
       setPdfLoading(false);
     }
-  }, [projectId, bookState?.pdf_url]);
+  }, [projectId, bookState?.pdf_url, bookState?.pdf_size_bytes]);
 
   // Auto-load PDF when user navigates to the render step OR when pdf_url changes
   useEffect(() => {
@@ -367,19 +387,35 @@ export default function BookStudio() {
     } catch (e) { toast.error(`Falha: ${e.message}`); }
   };
 
-  // Chapter-flow: edit prose of a chapter (opens a textarea in a modal-like prompt)
-  const editChapterProse = async (chapterIdx, currentProse) => {
-    const newProse = window.prompt(
-      `Editar prosa do Capítulo ${chapterIdx}. Paragrafe com linhas em branco entre parágrafos.\n\n⚠️ Após salvar, o Diagramador Master precisa re-diagramar este capítulo.`,
-      currentProse || ''
-    );
-    if (newProse === null || newProse === currentProse) return;
+  // Chapter-flow: edit prose of a chapter — opens a modal with proper textarea
+  // (window.prompt is broken for multi-paragraph text on most browsers)
+  const [proseEditor, setProseEditor] = useState({ open: false, chapterIdx: null, prose: '', saving: false });
+
+  const openProseEditor = (chapterIdx, currentProse) => {
+    setProseEditor({ open: true, chapterIdx, prose: currentProse || '', saving: false });
+  };
+
+  const closeProseEditor = () => {
+    setProseEditor({ open: false, chapterIdx: null, prose: '', saving: false });
+  };
+
+  const saveProseEdit = async () => {
+    const { chapterIdx, prose } = proseEditor;
+    if (chapterIdx == null) return;
+    setProseEditor((e) => ({ ...e, saving: true }));
     try {
-      await axios.patch(`${API}/api/studio/projects/${projectId}/book/chapter/${chapterIdx}/prose`,
-        { prose: newProse }, authHeaders());
-      toast.success(`Capítulo ${chapterIdx} atualizado`);
+      await axios.patch(
+        `${API}/api/studio/projects/${projectId}/book/chapter/${chapterIdx}/prose`,
+        { prose },
+        authHeaders(),
+      );
+      toast.success(`Capítulo ${chapterIdx} atualizado (${prose.split(/\s+/).filter(Boolean).length} palavras)`);
       await loadState(projectId, { inferStep: false });
-    } catch (e) { toast.error(`Falha: ${e.message}`); }
+      closeProseEditor();
+    } catch (e) {
+      toast.error(`Falha ao salvar: ${e?.response?.data?.detail || e.message}`);
+      setProseEditor((s) => ({ ...s, saving: false }));
+    }
   };
 
   // Download PDF via backend proxy (avoids ad-blocker blocking Supabase domain)
@@ -847,7 +883,7 @@ export default function BookStudio() {
                                 <summary className="text-[11px] text-amber-700 cursor-pointer hover:underline">Ver prosa escrita</summary>
                                 <pre className="text-xs text-gray-700 whitespace-pre-wrap mt-2 p-3 bg-amber-50 rounded max-h-64 overflow-y-auto font-sans">{written.prose}</pre>
                                 <button
-                                  onClick={() => editChapterProse(ch.index, written.prose)}
+                                  onClick={() => openProseEditor(ch.index, written.prose)}
                                   data-testid={`btn-edit-prose-${ch.index}`}
                                   className="mt-2 text-[11px] text-purple-700 hover:bg-purple-50 border border-purple-200 px-2 py-1 rounded flex items-center gap-1"
                                 >
@@ -1292,10 +1328,30 @@ export default function BookStudio() {
             {/* Inline PDF viewer */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden" style={{ height: 'calc(100vh - 240px)', minHeight: '500px' }}>
               {pdfLoading && !pdfBlobUrl ? (
-                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-500" data-testid="pdf-progress">
                   <Loader2 className="animate-spin text-amber-600 mb-3" size={32} />
-                  <p className="text-sm font-medium">Carregando PDF...</p>
-                  <p className="text-xs text-gray-400 mt-1">{Math.round((bookState?.pdf_size_bytes || 0) / 1024)} KB</p>
+                  <p className="text-sm font-medium">Baixando PDF...</p>
+                  {(() => {
+                    const total = pdfProgress.total || bookState?.pdf_size_bytes || 0;
+                    const loadedKB = Math.round(pdfProgress.loaded / 1024);
+                    const totalKB = Math.round(total / 1024);
+                    const pct = total ? Math.min(100, Math.round((pdfProgress.loaded / total) * 100)) : 0;
+                    return (
+                      <>
+                        <div className="w-64 h-2 bg-gray-200 rounded-full mt-3 overflow-hidden">
+                          <div
+                            className="h-full bg-amber-600 transition-all duration-200"
+                            style={{ width: `${pct}%` }}
+                            data-testid="pdf-progress-bar"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2 font-mono">
+                          {loadedKB.toLocaleString()} / {totalKB.toLocaleString()} KB · {pct}%
+                        </p>
+                      </>
+                    );
+                  })()}
+                  <p className="text-[10px] text-gray-400 mt-2">PDFs grandes podem demorar ~15s</p>
                 </div>
               ) : pdfError ? (
                 <div className="w-full h-full flex flex-col items-center justify-center text-red-600 p-6 text-center">
@@ -1326,6 +1382,77 @@ export default function BookStudio() {
         {busyAction && (
           <div className="fixed bottom-6 right-6 bg-amber-600 text-white px-4 py-2 rounded-lg shadow-lg text-xs font-mono flex items-center gap-2" data-testid="busy-indicator">
             <Loader2 className="animate-spin" size={14} /> {busyAction.split('/').pop()}...
+          </div>
+        )}
+
+        {/* Prose Editor Modal — replaces window.prompt (which is broken for long text) */}
+        {proseEditor.open && (
+          <div
+            className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+            data-testid="prose-editor-modal"
+            onMouseDown={(e) => { if (e.target === e.currentTarget && !proseEditor.saving) closeProseEditor(); }}
+          >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-3 border-b bg-gradient-to-r from-purple-50 to-amber-50">
+                <div className="flex items-center gap-2">
+                  <Edit3 size={16} className="text-purple-700" />
+                  <h3 className="font-semibold text-sm">
+                    Editar prosa — Capítulo {proseEditor.chapterIdx}
+                  </h3>
+                </div>
+                <button
+                  onClick={closeProseEditor}
+                  disabled={proseEditor.saving}
+                  data-testid="btn-close-prose-editor"
+                  className="p-1.5 rounded hover:bg-white/60 disabled:opacity-40"
+                  title="Fechar"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="px-5 py-2 text-[11px] text-gray-600 bg-amber-50 border-b border-amber-200">
+                ⚠️ Após salvar, o <b>Diagramador Master</b> precisa re-diagramar este capítulo (a diagramação antiga será invalidada).
+                Separe parágrafos com <b>linhas em branco</b>. Use <code>## Título</code> na primeira linha se quiser um título.
+              </div>
+              <div className="flex-1 p-5 overflow-hidden flex flex-col">
+                <textarea
+                  value={proseEditor.prose}
+                  onChange={(e) => setProseEditor((s) => ({ ...s, prose: e.target.value }))}
+                  disabled={proseEditor.saving}
+                  data-testid="prose-editor-textarea"
+                  spellCheck
+                  className="flex-1 w-full border border-gray-300 rounded-lg p-4 text-sm font-serif leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:opacity-60 min-h-[400px]"
+                  placeholder="Escreva a prosa do capítulo aqui..."
+                />
+                <div className="flex items-center justify-between text-[11px] text-gray-500 mt-2 px-1">
+                  <span>
+                    {proseEditor.prose.split(/\s+/).filter(Boolean).length} palavras · {proseEditor.prose.length} caracteres
+                  </span>
+                  <span>
+                    {(proseEditor.prose.split("\n\n").filter((p) => p.trim() && !p.trim().startsWith("##"))).length} parágrafo(s)
+                  </span>
+                </div>
+              </div>
+              <div className="px-5 py-3 border-t bg-gray-50 flex items-center justify-end gap-2">
+                <button
+                  onClick={closeProseEditor}
+                  disabled={proseEditor.saving}
+                  data-testid="btn-cancel-prose-edit"
+                  className="px-4 py-2 text-sm border rounded-lg hover:bg-white disabled:opacity-40"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveProseEdit}
+                  disabled={proseEditor.saving || !proseEditor.prose.trim()}
+                  data-testid="btn-save-prose-edit"
+                  className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {proseEditor.saving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                  {proseEditor.saving ? 'Salvando...' : 'Salvar prosa'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
