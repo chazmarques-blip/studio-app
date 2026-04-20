@@ -141,32 +141,25 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
 
 
   return (
-    <div 
+    <div
       onClick={() => !isEditing && onSelect(project)}
-      className="group relative flex items-center gap-5 p-4 rounded-xl border border-gray-200 bg-white hover:border-orange-500/30 hover:bg-[#0F0F0F] cursor-pointer transition-all"
+      className="group relative flex items-center gap-3 rounded-xl border border-gray-200 dark:border-[#2A2442] bg-white dark:bg-[#1A1430] hover:border-violet-300 dark:hover:border-violet-500/40 hover:shadow-sm cursor-pointer transition-all px-2 py-1"
+      data-testid={`project-row-${project.id}`}
     >
-      {/* Thumbnail */}
-      <div className="relative w-20 h-20 rounded-lg bg-gradient-to-br from-[#1A1A1A] to-[#0A0A0A] overflow-hidden shrink-0">
+      {/* Thumbnail — horizontal 16:9 */}
+      <div className="relative w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-violet-50 to-gray-100 dark:from-[#221A3F] dark:to-[#0D0719] overflow-hidden flex items-center justify-center">
         {videoThumbnail ? (
           <img src={videoThumbnail} alt="" className="w-full h-full object-cover" />
         ) : thumbnail ? (
           <img src={resolveImageUrl(thumbnail)} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <Film size={24} className="text-gray-400" />
-          </div>
-        )}
-        {firstVideo && (
-          <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-sm rounded px-1.5 py-0.5">
-            <Video size={10} className="text-gray-900" />
-          </div>
+          <Film size={22} strokeWidth={1.25} className="text-violet-200 dark:text-[#4A3F6B]" />
         )}
       </div>
 
-      {/* Project Info */}
-      <div className="flex-1 min-w-0">
-        {/* Editable Name */}
-        <div className="flex items-center gap-2 mb-1">
+      {/* Name + meta */}
+      <div className="flex-1 min-w-0" style={{ fontFamily: "'Manrope', system-ui" }}>
+        <div className="flex items-center gap-2">
           {isEditing ? (
             <div className="flex items-center gap-1 flex-1" onClick={e => e.stopPropagation()}>
               <input
@@ -175,210 +168,135 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 px-2 py-1 rounded bg-gray-100 border border-orange-500 text-sm text-gray-900 outline-none"
+                className="flex-1 px-2 py-1 rounded bg-gray-100 dark:bg-[#0A0614] border border-violet-500 text-[13px] text-gray-900 dark:text-white outline-none"
               />
-              <button onClick={handleSaveEdit} className="p-1 rounded hover:bg-white/10 text-emerald-400">
+              <button onClick={handleSaveEdit} className="p-1 rounded hover:bg-white/10 text-emerald-500">
                 <Check size={14} />
               </button>
-              <button onClick={handleCancelEdit} className="p-1 rounded hover:bg-white/10 text-red-400">
+              <button onClick={handleCancelEdit} className="p-1 rounded hover:bg-white/10 text-red-500">
                 <X size={14} />
               </button>
             </div>
           ) : (
             <>
-              <h3 className="text-sm font-semibold text-gray-900 truncate group-hover:text-[#A78BFA] transition-colors">
+              <h3 className="text-[14px] font-semibold text-gray-900 dark:text-white truncate leading-tight">
                 {project.name}
               </h3>
-              <button 
+              <button
                 onClick={handleStartEdit}
                 className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Renomear"
               >
-                <Pencil size={12} className="text-gray-900/70" />
+                <Pencil size={11} className="text-gray-500 dark:text-[#A3A3B2]" />
               </button>
             </>
           )}
         </div>
-        
-        {/* Stats Row - CORES MAIS CLARAS */}
-        <div className="flex items-center gap-4 text-xs text-gray-900/70 mb-3">
+
+        {/* Metadata row — compact */}
+        <div className="flex items-center gap-2.5 text-[11px] text-gray-600 dark:text-[#A3A3B2] mt-1 flex-wrap">
           {isBookProject ? (
-            <>
-              <span className="flex items-center gap-1.5 text-amber-700 font-semibold" data-testid={`book-badge-${project.id}`}>
-                <BookOpen size={13} /> 📖 Livro
-              </span>
-              {bookSpreadsCount > 0 && (
-                <span className="flex items-center gap-1.5">
-                  <Layers size={13} className="text-gray-900/60" /> {bookSpreadsCount} spreads
-                </span>
-              )}
-              <span className="flex items-center gap-1.5">
-                <Users size={13} className="text-gray-900/60" /> {charactersCount} personagens
-              </span>
-              {bookPdfUrl && (
-                <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
-                  ✅ PDF pronto
-                </span>
-              )}
-              {bookStatus && !bookPdfUrl && (
-                <span className="flex items-center gap-1.5 text-blue-600">
-                  {bookStatus.replace(/_/g, ' ')}
-                </span>
-              )}
-            </>
+            <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400" data-testid={`book-badge-${project.id}`}>
+              <BookOpen size={11} /> Livro
+            </span>
           ) : (
-            <>
-              <span className="flex items-center gap-1.5">
-                <Layers size={13} className="text-gray-900/60" /> {scenesCount} cenas
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Users size={13} className="text-gray-900/60" /> {charactersCount} personagens
-              </span>
-            </>
+            <span className="inline-flex items-center gap-1 font-medium text-violet-600 dark:text-violet-400">
+              <Video size={11} /> Vídeo
+            </span>
           )}
+
+          {isBookProject && bookSpreadsCount > 0 && (
+            <span className="inline-flex items-center gap-1">
+              <Layers size={11} className="text-gray-400 dark:text-[#6B647F]" /> {bookSpreadsCount} spreads
+            </span>
+          )}
+          {!isBookProject && (
+            <span className="inline-flex items-center gap-1">
+              <Layers size={11} className="text-gray-400 dark:text-[#6B647F]" /> {scenesCount} cenas
+            </span>
+          )}
+
+          <span className="inline-flex items-center gap-1">
+            <Users size={11} className="text-gray-400 dark:text-[#6B647F]" /> {charactersCount} personagens
+          </span>
+
+          {isBookProject && bookPdfUrl && (
+            <span className="inline-flex items-center gap-1 font-medium text-emerald-600 dark:text-emerald-400">
+              <Check size={11} /> PDF pronto
+            </span>
+          )}
+          {isBookProject && !bookPdfUrl && bookStatus && (
+            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+              {bookStatus.replace(/_/g, ' ')}
+            </span>
+          )}
+
           {updatedAt && (
-            <span className="flex items-center gap-1.5">
-              <Clock size={13} className="text-gray-900/60" /> {formatDate(updatedAt)}
-            </span>
-          )}
-          {/* Character Library Status */}
-          {!isBookProject && project.character_library && (
-            <span className="flex items-center gap-1.5 text-emerald-600">
-              <BookOpen size={13} /> {project.character_library.total_characters} disponíveis
+            <span className="inline-flex items-center gap-1 text-gray-500 dark:text-[#6B647F]">
+              <Clock size={11} /> {formatDate(updatedAt)}
             </span>
           )}
         </div>
-
-        {/* Progress Steps - Mini - apenas para projetos de vídeo */}
-        {!isBookProject && (
-        <div className="flex items-center gap-1.5">
-          {progress.steps.map((step, i) => (
-            <div 
-              key={step.key}
-              className={`flex items-center justify-center w-6 h-6 rounded-md ${
-                step.done 
-                  ? 'bg-[#8B5CF6]/30 text-[#A78BFA]' 
-                  : 'bg-gray-100 text-gray-900/40'
-              }`}
-              title={step.label}
-            >
-              <step.icon size={12} />
-            </div>
-          ))}
-          <span className="ml-2 text-xs text-gray-900/60">
-            {progress.completed}/{progress.total}
-          </span>
-        </div>
-        )}
       </div>
 
-      {/* Progress Circle — só para vídeos. Para livros, mostra ícone de livro */}
-      {isBookProject ? (
-        <div className="shrink-0 flex flex-col items-center gap-1.5">
-          <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
-            <BookOpen size={20} className="text-white" />
-          </div>
-          <span className="text-[10px] font-medium text-amber-700">
-            {bookPdfUrl ? 'PDF pronto' : 'Em progresso'}
-          </span>
+      {/* Status badge + actions — compact, fixed widths for alignment */}
+      <div className="flex items-center gap-1 shrink-0">
+        <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
+          (isBookProject ? bookPdfUrl : progress.percent === 100)
+            ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_10px_rgba(139,92,246,0.3)]'
+            : 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-[#2A2442] dark:to-[#1A1430] dark:border dark:border-[#3A3258]'
+        }`} title={(isBookProject ? bookPdfUrl : progress.percent === 100) ? 'Pronto' : 'Em progresso'}>
+          {isBookProject ? <BookOpen size={10} className="text-white" /> : <Video size={10} className="text-white" />}
         </div>
-      ) : (
-      <div className="shrink-0 flex flex-col items-center gap-1.5">
-        <div className="relative w-12 h-12">
-          <svg className="w-full h-full -rotate-90" viewBox="0 0 48 48">
-            <circle cx="24" cy="24" r="20" fill="none" stroke="#1A1A1A" strokeWidth="3" />
-            <circle 
-              cx="24" cy="24" r="20" fill="none" 
-              stroke={progress.percent === 100 ? '#4ADE80' : '#8B5CF6'} 
-              strokeWidth="3"
-              strokeDasharray={`${progress.percent * 1.26} 126`}
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-gray-900">
-            {progress.percent}%
-          </span>
-        </div>
-        <span className={`text-[10px] font-medium ${
-          progress.percent === 100 ? 'text-emerald-400' : 'text-gray-900/60'
-        }`}>
-          {progress.percent === 100 ? 'Concluído' : 'Em progresso'}
-        </span>
-      </div>
-      )}
 
-      {/* Actions */}
-      <div className="shrink-0 flex items-center gap-3">
-        <button 
+        <button
           onClick={(e) => { e.stopPropagation(); onSelect(project); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition ${
-            isBookProject
-              ? 'bg-amber-500/20 text-amber-700 hover:bg-amber-500/30'
-              : 'bg-[#8B5CF6]/20 text-[#A78BFA] hover:bg-[#8B5CF6]/30'
-          }`}
           data-testid={`open-project-${project.id}`}
+          className="w-[88px] h-6 rounded-full bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-500/20 text-[10px] font-medium flex items-center justify-center gap-1 transition border border-violet-100 dark:border-violet-500/20"
         >
-          {isBookProject ? (<><BookOpen size={13} /> Abrir livro</>) : (<><Play size={13} /> Abrir</>)}
+          {isBookProject ? <BookOpen size={10} /> : <Play size={10} />}
+          {isBookProject ? 'Abrir livro' : 'Abrir vídeo'}
         </button>
-        
-        {/* Character Library Button */}
-        {!project.character_library ? (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onSyncCharacters(project); }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-600 text-xs font-medium hover:bg-emerald-500/30 transition"
-            title="Carregar personagens da pasta"
-          >
-            <BookOpen size={13} /> Carregar
-          </button>
-        ) : (
-          <button 
-            onClick={(e) => { e.stopPropagation(); onSyncCharacters(project); }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-600 text-xs font-medium hover:bg-emerald-500/20 transition"
-            title={`Atualizar biblioteca (${project.character_library.total_characters} personagens)`}
-          >
-            <RefreshCw size={13} />
-          </button>
-        )}
-        
+
+        <button
+          onClick={(e) => { e.stopPropagation(); onSyncCharacters(project); }}
+          title={project.character_library ? `Atualizar biblioteca (${project.character_library.total_characters})` : 'Carregar personagens da pasta'}
+          className="w-[80px] h-6 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-500/20 text-[10px] font-medium flex items-center justify-center gap-1 transition border border-orange-100 dark:border-orange-500/20"
+        >
+          {project.character_library ? <RefreshCw size={10} /> : <BookOpen size={10} />}
+          Carregar
+        </button>
+
         {/* Menu */}
         <div className="relative">
-          <button 
+          <button
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="p-2 rounded-lg hover:bg-white/10 transition"
+            className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/10 transition"
           >
-            <MoreHorizontal size={16} className="text-gray-900/60" />
+            <MoreHorizontal size={12} className="text-gray-400 dark:text-[#6B647F]" />
           </button>
-          
+
           {showMenu && (
             <>
               <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }} />
-              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-[#2A2A2A] bg-gray-50 shadow-xl py-1.5 min-w-[160px]">
+              <div className="absolute right-0 top-full mt-1 z-20 rounded-lg border border-gray-200 dark:border-[#2A2442] bg-white dark:bg-[#110A1F] shadow-xl py-1.5 min-w-[160px]">
                 {!project.v2_migrated && (
-                  <button 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setShowMenu(false);
-                      // Will be handled in parent
-                      if (window.onUpgradeToV2) window.onUpgradeToV2(project);
-                    }}
-                    className="w-full px-4 py-2 text-left text-sm text-[#8B5CF6] hover:bg-[#8B5CF6]/10 flex items-center gap-2 border-b border-[#2A2A2A] mb-1"
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowMenu(false); if (window.onUpgradeToV2) window.onUpgradeToV2(project); }}
+                    className="w-full px-4 py-2 text-left text-sm text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-500/10 flex items-center gap-2 border-b border-gray-100 dark:border-[#2A2442] mb-1"
                   >
                     <Sparkles size={14} /> Upgrade to V2
                   </button>
                 )}
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); handleStartEdit(e); setShowMenu(false); }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-900 hover:bg-white/5 flex items-center gap-2"
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-[#A3A3B2] hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2"
                 >
                   <Pencil size={14} /> Renomear
                 </button>
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    e.preventDefault();
-                    setShowMenu(false); 
-                    onDelete(project); 
-                  }}
-                  className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
+                <button
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowMenu(false); onDelete(project); }}
+                  className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2"
                 >
                   <Trash2 size={14} /> Excluir
                 </button>
@@ -1796,7 +1714,7 @@ export default function StudioPage() {
             </button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5" data-testid="project-list">
             {filteredProjects.map((project) => (
               <ProjectRow
                 key={project.id}

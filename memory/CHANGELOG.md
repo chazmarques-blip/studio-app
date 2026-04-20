@@ -1,5 +1,29 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 12 — Fase 2 Finalização: ProjectRow reescrito)
+
+### Ajuste final — layout aprovado aplicado
+
+Após a Fase 2 estrutural (sidebar + theme toggle), o ProjectRow em si ainda estava no layout antigo (altura 100px+, progress circle de 48px, 2 linhas de meta, step icons redundantes).
+
+**Reescrita do componente `ProjectRow` em `StudioPage.jsx`:**
+- Container: `rounded-xl px-2 py-1` (antes: `p-4`) — reduziu altura ~40%
+- Thumbnail: `w-28 h-16` horizontal 16:9 (antes: 80×80 quadrado)
+- Metadata inline numa única linha: `📖 Livro · 👥 personagens · 📑 spreads · ✓ PDF pronto · ⏰ data`
+- Removido: progress circle SVG de 48px + step icons (6× 24px) — eram barulho visual que duplicava o `status` textual
+- Status badge: 24×24 redondo com gradient violeta→orange quando pronto
+- Botões action: `w-[88px] h-6` (Abrir livro, roxo) + `w-[80px] h-6` (Carregar, laranja) — larguras fixas garantem alinhamento vertical
+- Menu "···": ícone 12px, padding 1 (antes: 16px + p-2)
+- `space-y-1.5` entre linhas (antes: `space-y-3`)
+- Suporte completo `dark:` — funciona em ambos os temas
+
+### Validação visual
+- Light mode: cards brancos, sidebar lilás, acentos roxos, CTA laranja com glow ✓
+- Dark mode: cards roxo-escuros, gradients vibrantes, mesma legibilidade ✓
+- Toggle instantâneo no header, persiste em `localStorage` ✓
+
+---
+
 ## 2026-04-20 (Session 11 — Fase 2: Nova Navegação — Sidebar + Dark/Light Toggle)
 
 ### Mudanças estruturais
