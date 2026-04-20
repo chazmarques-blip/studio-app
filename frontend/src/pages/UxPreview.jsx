@@ -120,33 +120,46 @@ function DarkMockup() {
               })}
             </div>
 
-            <div className="grid grid-cols-3 gap-5" style={{ fontFamily: "'Manrope', system-ui" }}>
+            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
               {items.map((p) => {
                 const meta = TYPE_META[p.type];
                 return (
-                  <div key={p.id} className="group rounded-xl border border-[#262626] bg-[#121212] overflow-hidden hover:border-[#525252] transition cursor-pointer">
-                    <div className="aspect-video bg-gradient-to-br from-[#171717] to-[#0a0a0a] flex items-center justify-center relative overflow-hidden">
+                  <div
+                    key={p.id}
+                    className="group flex items-center gap-4 rounded-xl border border-[#262626] bg-[#121212] hover:bg-[#171717] hover:border-[#525252] transition cursor-pointer px-3 py-2.5"
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-16 h-10 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center border border-[#262626]">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={32} strokeWidth={1} className="text-[#262626]" />
+                        <meta.Icon size={16} strokeWidth={1.25} className="text-[#525252]" />
                       )}
                     </div>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <h3 className="text-[13px] font-semibold text-white leading-tight line-clamp-1">{p.name}</h3>
-                        <button className="p-0.5 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition">
-                          <MoreHorizontal size={14} className="text-[#737373]" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-[#A3A3A3]">
+
+                    {/* Name (primary) */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[13px] font-semibold text-white truncate">{p.name}</h3>
+                      <div className="flex items-center gap-2 text-[11px] text-[#A3A3A3] mt-0.5">
                         <span className={`inline-flex items-center gap-1 ${meta.dark}`}>
                           <meta.Icon size={10} /> {meta.label}
                         </span>
                         <span className="text-[#525252]">·</span>
                         <span>{p.status}</span>
                       </div>
-                      <p className="text-[10px] text-[#525252] mt-1.5 font-mono uppercase tracking-wider">{p.when}</p>
+                    </div>
+
+                    {/* When (right-aligned) */}
+                    <p className="hidden sm:block text-[10px] text-[#525252] font-mono uppercase tracking-wider shrink-0 w-16 text-right">{p.when}</p>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button className="px-3 py-1.5 rounded-md text-[11px] font-medium text-[#A3A3A3] hover:text-white hover:bg-white/10 transition">
+                        Abrir
+                      </button>
+                      <button className="p-1.5 rounded-md hover:bg-white/10 opacity-0 group-hover:opacity-100 transition">
+                        <MoreHorizontal size={14} className="text-[#737373]" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -256,33 +269,46 @@ function LightMockup() {
               })}
             </div>
 
-            <div className="grid grid-cols-3 gap-5" style={{ fontFamily: "'Manrope', system-ui" }}>
+            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
               {items.map((p) => {
                 const meta = TYPE_META[p.type];
                 return (
-                  <div key={p.id} className="group rounded-xl border border-gray-200 bg-white overflow-hidden hover:border-gray-300 hover:shadow-md transition cursor-pointer">
-                    <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden">
+                  <div
+                    key={p.id}
+                    className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer px-3 py-2.5"
+                  >
+                    {/* Thumbnail */}
+                    <div className="w-16 h-10 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center border border-gray-200">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={32} strokeWidth={1} className="text-gray-300" />
+                        <meta.Icon size={16} strokeWidth={1.25} className="text-gray-400" />
                       )}
                     </div>
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <h3 className="text-[13px] font-semibold text-gray-900 leading-tight line-clamp-1">{p.name}</h3>
-                        <button className="p-0.5 rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition">
-                          <MoreHorizontal size={14} className="text-gray-400" />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-gray-600">
+
+                    {/* Name (primary) */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[13px] font-semibold text-gray-900 truncate">{p.name}</h3>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-600 mt-0.5">
                         <span className={`inline-flex items-center gap-1 ${meta.light}`}>
                           <meta.Icon size={10} /> {meta.label}
                         </span>
                         <span className="text-gray-300">·</span>
                         <span>{p.status}</span>
                       </div>
-                      <p className="text-[10px] text-gray-400 mt-1.5 font-mono uppercase tracking-wider">{p.when}</p>
+                    </div>
+
+                    {/* When */}
+                    <p className="hidden sm:block text-[10px] text-gray-400 font-mono uppercase tracking-wider shrink-0 w-16 text-right">{p.when}</p>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button className="px-3 py-1.5 rounded-md text-[11px] font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
+                        Abrir
+                      </button>
+                      <button className="p-1.5 rounded-md hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition">
+                        <MoreHorizontal size={14} className="text-gray-400" />
+                      </button>
                     </div>
                   </div>
                 );
