@@ -120,26 +120,29 @@ function DarkMockup() {
               })}
             </div>
 
-            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
-              {items.map((p) => {
+            <div className="rounded-xl overflow-hidden border border-[#262626] bg-[#0f0f0f]" style={{ fontFamily: "'Manrope', system-ui" }}>
+              {items.map((p, i) => {
                 const meta = TYPE_META[p.type];
+                const isLast = i === items.length - 1;
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-4 rounded-xl border border-[#262626] bg-[#121212] hover:bg-[#171717] hover:border-[#525252] transition cursor-pointer px-3 py-2.5"
+                    className={`group flex items-center gap-3 px-3 py-1.5 hover:bg-white/5 transition cursor-pointer ${
+                      isLast ? '' : 'border-b border-[#1a1a1a]'
+                    }`}
                   >
-                    {/* Thumbnail */}
-                    <div className="w-16 h-10 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center border border-[#262626]">
+                    {/* Thumbnail — larger */}
+                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={16} strokeWidth={1.25} className="text-[#525252]" />
+                        <meta.Icon size={20} strokeWidth={1.25} className="text-[#3a3a3a]" />
                       )}
                     </div>
 
-                    {/* Name (primary) */}
+                    {/* Name + meta */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[13px] font-semibold text-white truncate">{p.name}</h3>
+                      <h3 className="text-[13px] font-semibold text-white truncate leading-tight">{p.name}</h3>
                       <div className="flex items-center gap-2 text-[11px] text-[#A3A3A3] mt-0.5">
                         <span className={`inline-flex items-center gap-1 ${meta.dark}`}>
                           <meta.Icon size={10} /> {meta.label}
@@ -149,12 +152,12 @@ function DarkMockup() {
                       </div>
                     </div>
 
-                    {/* When (right-aligned) */}
+                    {/* When */}
                     <p className="hidden sm:block text-[10px] text-[#525252] font-mono uppercase tracking-wider shrink-0 w-16 text-right">{p.when}</p>
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 shrink-0">
-                      <button className="px-3 py-1.5 rounded-md text-[11px] font-medium text-[#A3A3A3] hover:text-white hover:bg-white/10 transition">
+                      <button className="px-3 py-1 rounded-md text-[11px] font-medium text-[#A3A3A3] hover:text-white hover:bg-white/10 transition">
                         Abrir
                       </button>
                       <button className="p-1.5 rounded-md hover:bg-white/10 opacity-0 group-hover:opacity-100 transition">
@@ -269,26 +272,29 @@ function LightMockup() {
               })}
             </div>
 
-            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
-              {items.map((p) => {
+            <div className="rounded-xl overflow-hidden border border-gray-200 bg-white" style={{ fontFamily: "'Manrope', system-ui" }}>
+              {items.map((p, i) => {
                 const meta = TYPE_META[p.type];
+                const isLast = i === items.length - 1;
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer px-3 py-2.5"
+                    className={`group flex items-center gap-3 px-3 py-1.5 hover:bg-gray-50 transition cursor-pointer ${
+                      isLast ? '' : 'border-b border-gray-100'
+                    }`}
                   >
-                    {/* Thumbnail */}
-                    <div className="w-16 h-10 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center border border-gray-200">
+                    {/* Thumbnail — larger */}
+                    <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={16} strokeWidth={1.25} className="text-gray-400" />
+                        <meta.Icon size={20} strokeWidth={1.25} className="text-gray-300" />
                       )}
                     </div>
 
-                    {/* Name (primary) */}
+                    {/* Name + meta */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[13px] font-semibold text-gray-900 truncate">{p.name}</h3>
+                      <h3 className="text-[13px] font-semibold text-gray-900 truncate leading-tight">{p.name}</h3>
                       <div className="flex items-center gap-2 text-[11px] text-gray-600 mt-0.5">
                         <span className={`inline-flex items-center gap-1 ${meta.light}`}>
                           <meta.Icon size={10} /> {meta.label}
@@ -303,7 +309,7 @@ function LightMockup() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-1 shrink-0">
-                      <button className="px-3 py-1.5 rounded-md text-[11px] font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
+                      <button className="px-3 py-1 rounded-md text-[11px] font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
                         Abrir
                       </button>
                       <button className="p-1.5 rounded-md hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition">
