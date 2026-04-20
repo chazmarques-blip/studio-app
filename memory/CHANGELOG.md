@@ -1,5 +1,48 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 9 — Cleanup Tier 2 + Tier 3: Docs legados + Tests antigos)
+
+### Tier 2 — Documentação do projeto anterior (AgentFlow) removida
+
+**Zero impacto em runtime** — apenas arquivos `.md` informativos obsoletos.
+
+Removidos do `/app/` raiz (25 arquivos, ~470KB):
+- 7 × `AGENTFLOW_*.md` (especificações do SaaS WhatsApp anterior)
+- 18 × guias antigos: `BATCH_*`, `KLING_*` (obsoletos), `PIPELINE_*`, `MULTI_ENGINE_*`, `MUSICAL_VIDEO_*`, `DIRECTOR_AUTONOMOUS_*`, `ELEVENLABS_MUSIC_*`, `CONTENT_ADVISORS_*`, `DEBUG_BATCH_*`, `COMO_TESTAR_KLING`, `GUIA_*`, `SCRIPT_TESTE_AB`, `image_testing`
+
+Removidos de `/app/memory/` (31 arquivos, ~500KB):
+- Docs de features já implementadas: `ARCHITECTURE_ANALYSIS`, `AUDIO_CONTINUITY_FIXES`, `AUTONOMOUS_AGENTS_*`, `AVATAR_*`, `BUCKET_FIX`, `CHARACTER_*`, `CHECKPOINT_SAFETY`, `DESIGN_SYSTEM_PREMIUM`, `DIRECTOR_REVIEW_*`, `ENGINEERING_PLAN`, `FALLBACK_SYSTEM`, `FINAL_IMPLEMENTATION_REPORT`, `FRAME_STITCHING_*`, `LANGUAGE_*`, `MASTERMIND_BLUEPRINT`, `PARALLEL_AGENTS_SYSTEM`, `PLANO_COMPLETO_AUDIO_CAMADAS`, `PRODUCTION_STRATEGY`, `QUALIDADE_*`, `SOUND_DESIGN_AGENT`, `STATUS_DIALOGUES_AND_CONTINUITY`, `UX_*`, `VIDEO_STITCHING_ARCHITECTURE`, `AUDIT_REPORT`
+
+Removidos de `/app/backend/docs/` (2 arquivos + diretório):
+- `COMPLETE_PIPELINE.md`, `DIALOGUE_TIMELINE.md`
+
+**Mantidos (source of truth atual):**
+- `/app/README.md`, `/app/test_result.md`
+- `/app/memory/PRD.md`, `CHANGELOG.md`, `ROADMAP.md`, `test_credentials.md`
+
+### Tier 3 — Tests antigos arquivados
+
+**118 arquivos `test_iteration*.py`** (iterações 10 a 136) movidos para `/app/backend/tests/_archive/`.
+
+- Testavam features/fluxos antigos que mudaram nas últimas 30+ iterações (não servem mais como regressão confiável).
+- NÃO deletados — ficam disponíveis para consulta/recuperação se necessário.
+
+**Mantidos (tests ainda relevantes para BookFactory atual):**
+- `test_iteration137_book_factory.py` — BookFactory pipeline
+- `test_iteration138_bookfactory_p0p1.py` — BookFactory P0/P1 fixes
+
+### Validação
+
+Backend reiniciado sem erros. Smoke test completo:
+- `/api/health` → 200
+- `/api/auth/login` → 200
+- `/api/studio/projects` → 200 (lista de 66 projetos intacta)
+- `/book/state` em 2 projetos distintos → 200
+
+**Impacto total (Tier 1 + 2 + 3):** ~3MB de código/docs/tests obsoletos eliminados, zero regressão em fluxos de vídeo/livro/música.
+
+---
+
 ## 2026-04-20 (Session 8 — Cleanup Tier 1: Arquivos mortos e diretórios vazios)
 
 ### Limpeza preliminar do código migrado de outro projeto (AgentFlow → StudioX)
