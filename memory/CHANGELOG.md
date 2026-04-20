@@ -1,5 +1,48 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 6 — Edição Manual de Prosa + Filtros de Projeto + Banner Híbrido)
+
+### Bugfix P0 — "Editar prosa manualmente não funciona"
+
+**Causa raiz:** `window.prompt()` nativo é inadequado para editar texto multi-parágrafo. Os navegadores truncam/quebram o valor default quando passado texto longo com `\n\n`, tornando a edição inviável.
+
+**Fix em `/app/frontend/src/pages/BookStudio.jsx`:**
+- Removido `window.prompt` do handler `editChapterProse`.
+- Adicionado estado `proseEditor = { open, chapterIdx, prose, saving }`.
+- Implementado modal dedicado com `<textarea>` (min-h 400px, font-serif, spellcheck) + contadores (palavras / caracteres / parágrafos) + botões Salvar/Cancelar.
+- Handler `saveProseEdit` chama PATCH `/api/studio/projects/{id}/book/chapter/{idx}/prose`, recarrega estado e fecha modal automaticamente.
+- Data-testids: `prose-editor-modal`, `prose-editor-textarea`, `btn-save-prose-edit`, `btn-cancel-prose-edit`, `btn-close-prose-editor`.
+
+### Bugfix P0 — "Preview do livro não aparece"
+
+**Causa raiz:** PDFs do BookFactory são grandes (14–35 MB). O download via proxy levava 10–25s, mas o UI mostrava apenas "Carregando PDF..." estático, sem indicação de progresso. Usuários desistiam achando que travou.
+
+**Fix em `BookStudio.jsx`:**
+- `loadPdfBlob` agora consome a resposta via `ReadableStream` (getReader) e emite `pdfProgress = { loaded, total }` incremental.
+- UI de loading substituída por barra de progresso animada (`pdf-progress-bar`) + contador "X / Y KB · Z%" + dica "PDFs grandes podem demorar ~15s".
+- Fallback para `blob()` direto quando `getReader` indisponível (compat).
+
+### Feature P1 — Filtros de Tipo de Projeto
+
+**`/app/frontend/src/pages/StudioPage.jsx`:**
+- Adicionado estado `projectTypeFilter` ('all' | 'video' | 'book' | 'both').
+- Helper `projectKind(p)` infere tipo do projeto (respeita `output_mode`, com fallback para `project_bible.book_bible` em projetos legacy).
+- Pills coloridos com contagem: Tudo / Vídeos / Livros / Híbridos, abaixo da search bar.
+- Data-testids: `project-type-filter`, `filter-all`, `filter-video`, `filter-book`, `filter-both`.
+
+### Feature P1 — Banner de Navegação Híbrida
+
+**`/app/frontend/src/components/DirectedStudio.jsx`:**
+- Importado `useNavigate` do react-router-dom.
+- Estado `outputMode` adicionado e preenchido a partir de `p.output_mode` ao carregar projeto.
+- Banner "📖 Ver livro" (gradient âmbar) renderizado no topo do studio quando `outputMode === 'both'`, com botão navegando para `/studio/book/{id}`.
+- Data-testid: `hybrid-project-banner`, `btn-open-book-studio`.
+
+### Testing
+- testing_agent_v3_fork — iteração 139 — 100% frontend passou, 4/4 features validadas.
+
+---
+
 ## 2026-04-20 (Session 5 — Diagramador Master + Revisor Tipográfico LLM)
 
 ### Feature: 2 agentes LLM profissionais de diagramação

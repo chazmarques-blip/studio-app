@@ -55,6 +55,11 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - Folder delete with inline two-click confirmation
 - Hierarchical folder system (subpastas with parent_id)
 - ElevenLabs Music API integration (original soundtrack generation per project)
+- **BookFactory pipeline** (Session 5): 4-agent layout review (Revisor Literário, Plano, Curador Visual, Diagramador Master + Revisor Tipográfico)
+- **Inline PDF viewer** with react-pdf + progress bar (Session 6)
+- **Modal-based prose editor** replacing window.prompt (Session 6)
+- **Project type filters** in Studio page: Tudo / Vídeos / Livros / Híbridos (Session 6)
+- **Hybrid project navigation banner** — DirectedStudio shows "Ver livro" button for output_mode='both' (Session 6)
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123
@@ -66,9 +71,13 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - **Jonas e a Baleia** (fd7e965d42f8): 35 scenes, 0 videos generated
 
 ## Backlog
+- P0 (non-blocking, observed): Backend worker saturation when video pipeline runs — `time.sleep` + sync `videos.retrieve` in Sora polling can queue requests. Production runs in thread pool so it's mitigated, but worth migrating to `asyncio.sleep` + `asyncio.to_thread()` for cleaner multiplexing.
 - P1: Personality field UI (textarea in character editor)
+- P1: BookFactory — implement REAL RAG in `/app/backend/core/bible_rag.py` (currently mock). Use ChromaDB or Supabase pgvector to ingest public-domain reference texts.
 - P2: Custom Video Editor UI (timeline)
-- P2: Modularize DirectedStudio.jsx (~4700 lines)
+- P2: Modularize DirectedStudio.jsx (>4900 lines)
 - P2: Multi-format export
+- P2: BookFactory → KDP/Lulu API integration for print-on-demand publishing
+- P2: Cleanup 218 silent `except: pass` blocks in /app/backend/routers/
 - P3: Voice selection UI per character
 - P3: WebSocket for real-time progress
