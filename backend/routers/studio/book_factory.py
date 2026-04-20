@@ -843,14 +843,14 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
     PRESETS = {
         "infantil_ilustrado": {
             "font_family": "'Source Serif Pro', Georgia, serif",
-            "font_size_pt": 14,
-            "line_height": 1.5,
-            "margins_mm": {"top": 18, "bottom": 18, "inner": 20, "outer": 16},
-            "widows": 3, "orphans": 3,
+            "font_size_pt": 12,
+            "line_height": 1.4,
+            "margins_mm": {"top": 16, "bottom": 16, "inner": 18, "outer": 14},
+            "widows": 2, "orphans": 2,
             "hyphens": "auto",
-            "drop_cap": False,
+            "drop_cap": True,
             "show_running_headers": False,
-            "chapter_start_recto": True,
+            "chapter_start_recto": False,
         },
         "romance_adulto": {
             "font_family": "'EB Garamond', Garamond, serif",
@@ -867,7 +867,7 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
             "font_family": "'Source Serif Pro', Georgia, serif",
             "font_size_pt": 11,
             "line_height": 1.35,
-            "margins_mm": {"top": 22, "bottom": 22, "inner": 22, "outer": 18},
+            "margins_mm": {"top": 20, "bottom": 20, "inner": 20, "outer": 16},
             "widows": 3, "orphans": 3,
             "hyphens": "auto",
             "drop_cap": False,
@@ -877,11 +877,71 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
     }
     layout = PRESETS.get(format_preset, PRESETS["infantil_ilustrado"])
 
+    # ── LAYOUT DESIGNER (Diagramador) ─────────────────────────────────
+    # Distribui ilustrações do capítulo ao longo da prosa (não todas empilhadas no topo!).
+    # Estratégia:
+    #   - Se 1 ilustração: coloca 60-70% do capítulo (após clímax visual).
+    #   - Se 2+ ilustrações: primeira no topo (após título), restantes distribuídas.
+    #   - Spot illustrations: inline, 50% width
+    #   - Full: page-break (ocupa a próxima página cheia)
+    def _anchor_illustrations(prose_text: str, illus_list: list) -> list:
+        """Returns list of 'blocks' ordered: either {'type':'para','text':str} or {'type':'illus','data':dict}."""
+        paras = [p.strip() for p in (prose_text or "").split("\n\n") if p.strip() and not p.strip().startswith("##")]
+        illus_ready = [i for i in (illus_list or []) if i.get("illustration_url")]
+        blocks = []
+        if not paras:
+            for it in illus_ready:
+                blocks.append({"type": "illus", "data": it})
+            return blocks
+        n = len(paras)
+        m = len(illus_ready)
+        if m == 0:
+            return [{"type": "para", "text": p} for p in paras]
+        # Anchor positions (para index AFTER which to insert)
+        if m == 1:
+            anchor_positions = [max(0, int(n * 0.35))]  # roughly 35% in
+        else:
+            # First one at top (position -1 → before any paragraph), others evenly spread
+            anchor_positions = [-1]
+            for i in range(1, m):
+                pos = max(0, min(n - 1, int(i * n / m)))
+                anchor_positions.append(pos)
+        # Build blocks: walk paragraphs, insert illus after reaching anchor
+        illus_iter = iter(list(zip(anchor_positions, illus_ready)))
+        pending = []
+        try:
+            cur = next(illus_iter)
+        except StopIteration:
+            cur = None
+        # Handle pre-paragraph illus (position == -1)
+        while cur and cur[0] < 0:
+            pending.append({"type": "illus", "data": cur[1]})
+            try: cur = next(illus_iter)
+            except StopIteration: cur = None
+        blocks.extend(pending)
+        for idx, p in enumerate(paras):
+            blocks.append({"type": "para", "text": p})
+            while cur and cur[0] == idx:
+                blocks.append({"type": "illus", "data": cur[1]})
+                try: cur = next(illus_iter)
+                except StopIteration: cur = None
+        # Any illustrations with anchor >= n go to end
+        while cur:
+            blocks.append({"type": "illus", "data": cur[1]})
+            try: cur = next(illus_iter)
+            except StopIteration: cur = None
+        return blocks
+
     # Build pages
     ordered = sorted(chapters_dict.values(), key=lambda x: x.get("index", 0))
     illus_by_chapter = {}
     for p in plan:
         illus_by_chapter.setdefault(p.get("chapter"), []).append(p)
+
+    # Attach anchored blocks per chapter
+    for ch in ordered:
+        ch_illus = illus_by_chapter.get(ch.get("index"), [])
+        ch["_blocks"] = _anchor_illustrations(ch.get("prose", ""), ch_illus)
 
     # Render HTML (1st pass without padding)
     from jinja2 import Environment, FileSystemLoader, select_autoescape
