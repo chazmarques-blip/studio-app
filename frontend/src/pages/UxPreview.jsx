@@ -120,16 +120,13 @@ function DarkMockup() {
               })}
             </div>
 
-            <div className="rounded-xl overflow-hidden border border-[#262626] bg-[#0f0f0f]" style={{ fontFamily: "'Manrope', system-ui" }}>
-              {items.map((p, i) => {
+            <div className="space-y-1.5" style={{ fontFamily: "'Manrope', system-ui" }}>
+              {items.map((p) => {
                 const meta = TYPE_META[p.type];
-                const isLast = i === items.length - 1;
                 return (
                   <div
                     key={p.id}
-                    className={`group flex items-center gap-3 px-3 py-2 hover:bg-white/5 transition cursor-pointer ${
-                      isLast ? '' : 'border-b border-[#1a1a1a]'
-                    }`}
+                    className="group flex items-center gap-4 rounded-lg border border-[#262626] bg-[#121212] hover:border-[#525252] hover:bg-[#171717] transition cursor-pointer px-3 py-2"
                   >
                     {/* Thumbnail */}
                     <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center relative">
@@ -139,7 +136,7 @@ function DarkMockup() {
                         <meta.Icon size={20} strokeWidth={1.25} className="text-[#3a3a3a]" />
                       )}
                       {p.done && (
-                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#0f0f0f]" title="Pronto" />
+                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-400 ring-1 ring-[#121212]" title="Pronto" />
                       )}
                     </div>
 
@@ -155,21 +152,25 @@ function DarkMockup() {
                           <Users size={10} className="text-[#737373]" />
                           {p.characters} {p.characters === 1 ? 'personagem' : 'personagens'}
                         </span>
-                        <span className="text-[#525252]">·</span>
-                        {p.pages && (
-                          <span className="inline-flex items-center gap-1">
-                            <FileText size={10} className="text-[#737373]" />
-                            {p.pages} páginas
-                          </span>
+                        {(p.pages || p.scenes) && (
+                          <>
+                            <span className="text-[#525252]">·</span>
+                            {p.pages && (
+                              <span className="inline-flex items-center gap-1">
+                                <FileText size={10} className="text-[#737373]" />
+                                {p.pages} páginas
+                              </span>
+                            )}
+                            {p.scenes && (
+                              <span className="inline-flex items-center gap-1">
+                                <Clapperboard size={10} className="text-[#737373]" />
+                                {p.scenes} cenas
+                              </span>
+                            )}
+                          </>
                         )}
-                        {p.scenes && (
-                          <span className="inline-flex items-center gap-1">
-                            <Clapperboard size={10} className="text-[#737373]" />
-                            {p.scenes} cenas
-                          </span>
-                        )}
                         <span className="text-[#525252]">·</span>
-                        <span className={`inline-flex items-center gap-1 ${p.done ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        <span className={`inline-flex items-center gap-1 font-medium ${p.done ? 'text-emerald-400' : 'text-amber-400'}`}>
                           {p.done ? <Check size={10} /> : <Loader size={10} />}
                           {p.status}
                         </span>
@@ -296,16 +297,13 @@ function LightMockup() {
               })}
             </div>
 
-            <div className="rounded-xl overflow-hidden border border-gray-200 bg-white" style={{ fontFamily: "'Manrope', system-ui" }}>
-              {items.map((p, i) => {
+            <div className="space-y-1.5" style={{ fontFamily: "'Manrope', system-ui" }}>
+              {items.map((p) => {
                 const meta = TYPE_META[p.type];
-                const isLast = i === items.length - 1;
                 return (
                   <div
                     key={p.id}
-                    className={`group flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition cursor-pointer ${
-                      isLast ? '' : 'border-b border-gray-100'
-                    }`}
+                    className="group flex items-center gap-4 rounded-lg border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer px-3 py-2"
                   >
                     {/* Thumbnail */}
                     <div className="w-24 h-14 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center relative">
@@ -331,18 +329,22 @@ function LightMockup() {
                           <Users size={10} className="text-gray-400" />
                           {p.characters} {p.characters === 1 ? 'personagem' : 'personagens'}
                         </span>
-                        <span className="text-gray-300">·</span>
-                        {p.pages && (
-                          <span className="inline-flex items-center gap-1">
-                            <FileText size={10} className="text-gray-400" />
-                            {p.pages} páginas
-                          </span>
-                        )}
-                        {p.scenes && (
-                          <span className="inline-flex items-center gap-1">
-                            <Clapperboard size={10} className="text-gray-400" />
-                            {p.scenes} cenas
-                          </span>
+                        {(p.pages || p.scenes) && (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            {p.pages && (
+                              <span className="inline-flex items-center gap-1">
+                                <FileText size={10} className="text-gray-400" />
+                                {p.pages} páginas
+                              </span>
+                            )}
+                            {p.scenes && (
+                              <span className="inline-flex items-center gap-1">
+                                <Clapperboard size={10} className="text-gray-400" />
+                                {p.scenes} cenas
+                              </span>
+                            )}
+                          </>
                         )}
                         <span className="text-gray-300">·</span>
                         <span className={`inline-flex items-center gap-1 font-medium ${p.done ? 'text-emerald-600' : 'text-amber-600'}`}>
