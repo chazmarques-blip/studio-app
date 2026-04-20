@@ -884,7 +884,206 @@ async def book_proofread(project_id: str, tenant=Depends(get_current_tenant)):
 #   breaks, pacing issues, too many figures in a row, orphan paragraphs.
 # ══════════════════════════════════════════════════════════════════════
 
-@router.post("/projects/{project_id}/book/audit-illustrations")
+@router.post("/projects/{project_id}/book/review-chapters")
+async def book_review_chapters(project_id: str, tenant=Depends(get_current_tenant)):
+    """Revisor Literário: audits the written prose of each chapter for:
+      - continuity (character names/traits consistent, facts stable)
+      - repetition (no word/phrase overuse within chapter)
+      - voice consistency (same narrator POV, tone matches brief)
+      - dialogue attribution clarity
+      - pacing (not too many short paragraphs in a row, not too dense)
+    Applies fixes in-place. Parallel across chapters.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    chapters_dict = bb.get("chapters") or {}
+    brief = bb.get("brief") or {}
+    characters = project.get("characters") or []
+
+    if not chapters_dict:
+        raise HTTPException(status_code=400, detail="No chapters written yet")
+
+    lang = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(brief.get("language", "pt"), "Portuguese")
+    char_refs = "\n".join([f"- {c.get('name')}: {c.get('description', '')[:150]}" for c in characters if isinstance(c, dict) and c.get("name")]) or "(none)"
+
+    critiques_all = []
+    updates = {}
+
+    async def _review_chapter(idx_str: str):
+        ch = chapters_dict[idx_str]
+        prose = ch.get("prose", "")
+        prompt = f"""You are the Revisor Literário — a senior editor at a top children's book publisher. Audit this chapter's prose and return a corrected version.
+
+BOOK: {brief.get('title', '')} — format: {brief.get('format_preset')} — language: {lang}
+CHARACTER CANON (must stay consistent):
+{char_refs}
+
+CHAPTER {idx_str}: "{ch.get('title', '')}"
+CURRENT PROSE:
+{prose}
+
+AUDIT AGAINST:
+1. CONTINUITY — Are character names, traits, appearances, and facts consistent with the canon? Flag any deviation.
+2. REPETITION — Any word or phrase overused within this chapter (e.g. "then" 8 times, "very" 12 times)? Replace with varied alternatives.
+3. VOICE — Does the narrator's tone match the format? For infantil_ilustrado: warm, playful, vivid. For tecnico_historico: clear, authoritative. Fix drift.
+4. DIALOGUE — Is every line of dialogue clearly attributed? Add "disse Ash" style tags where ambiguous.
+5. PACING — Avoid 5+ consecutive 1-sentence paragraphs (choppy) OR monolithic 10-sentence paragraphs (dense). Merge or split as needed.
+6. FACTUAL — For non-fiction/guide chapters, is the information correct and safe? (e.g. dog care advice should be medically sound.)
+
+Return ONLY JSON:
+{{
+  "critique": ["list max 5 issues found and fixed"],
+  "corrected_prose": "the FULL corrected chapter prose, markdown-formatted with ## title, then paragraphs separated by blank lines. Preserve original paragraph count within ±2."
+}}
+"""
+        try:
+            raw = (await _call_claude_async(
+                f"You are a senior children's book editor. Output strictly valid JSON in {lang}. Preserve the chapter structure; only improve quality.",
+                prompt,
+                max_tokens=6000,
+            )).strip()
+            if raw.startswith("```"):
+                raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+            result = json.loads(raw)
+            return idx_str, result.get("corrected_prose", prose), result.get("critique", [])
+        except Exception as e:
+            logger.warning(f"BookFactory Revisor Literário chapter {idx_str} failed: {e}")
+            return idx_str, prose, [f"review failed: {str(e)[:100]}"]
+
+    results = await asyncio.gather(*[_review_chapter(k) for k in sorted(chapters_dict.keys(), key=lambda x: int(x))])
+    for idx_str, new_prose, issues in results:
+        chapters_dict[idx_str]["prose"] = new_prose
+        chapters_dict[idx_str]["word_count"] = len((new_prose or "").split())
+        chapters_dict[idx_str]["review_critique"] = issues
+        critiques_all.append({"chapter": int(idx_str), "issues": issues})
+        updates[idx_str] = len(issues)
+
+    critiques_all.sort(key=lambda x: x["chapter"])
+    bb["chapters"] = chapters_dict
+    bb["chapters_reviewed"] = True
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _add_milestone(project, "book_chapters_reviewed", f"Revisor Literário auditou {len(chapters_dict)} capítulos")
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "reviewed", "chapters": len(chapters_dict), "critiques": critiques_all}
+
+
+@router.post("/projects/{project_id}/book/review-illustration-plan")
+async def book_review_illustration_plan(project_id: str, tenant=Depends(get_current_tenant)):
+    """Revisor de Plano: audits illustration_plan BEFORE image generation. Catches:
+      - too few/many per chapter
+      - duplicate scenes
+      - vague descriptions ("character in a setting")
+      - wrong type (spot for climactic moment)
+      - missing key moments (chapter with clear emotional peak but no illus)
+    Modifies plan in-place; new images get generated in the next step.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    chapters_dict = bb.get("chapters") or {}
+    plan = bb.get("illustration_plan") or []
+    brief = bb.get("brief") or {}
+    characters = project.get("characters") or []
+
+    if not plan:
+        raise HTTPException(status_code=400, detail="No illustration plan yet")
+
+    char_names = [c.get("name") for c in characters if isinstance(c, dict) and c.get("name")]
+    lang = {"pt": "Portuguese", "en": "English"}.get(brief.get("language", "pt"), "Portuguese")
+
+    # Build chapter summaries for context
+    chapter_previews = []
+    for idx_str in sorted(chapters_dict.keys(), key=lambda x: int(x)):
+        ch = chapters_dict[idx_str]
+        prose = ch.get("prose", "")
+        para_count = sum(1 for p in prose.split("\n\n") if p.strip() and not p.strip().startswith("##"))
+        ch_plan = [p for p in plan if p.get("chapter") == int(idx_str)]
+        chapter_previews.append(
+            f"Ch{idx_str} ({ch.get('title')}) — {para_count} paras, currently {len(ch_plan)} illus planned:\n"
+            f"  Prose preview: {prose[:500]}...\n"
+            f"  Current illustration plan:\n" + "\n".join([
+                f"    - id={it.get('page_number')} type={it.get('type')} chars={','.join(it.get('characters_in_page', []) or [])}: {it.get('description', '')[:150]}"
+                for it in ch_plan
+            ])
+        )
+
+    prompt = f"""You are the Revisor de Plano (Planning Auditor) — a senior art director with 20 years at top children's book publishers. Audit the illustration plan for this book BEFORE expensive image generation starts. Fix issues now so we don't waste generation time/money.
+
+FORMAT: {brief.get('format_preset')} — language: {lang}
+CHARACTERS AVAILABLE: {', '.join(char_names) if char_names else '(none listed)'}
+
+CHAPTERS + CURRENT PLAN:
+{chr(10).join(chapter_previews)}
+
+AUDIT CRITERIA:
+1. DENSITY — Each chapter with 6+ paragraphs MUST have at least 3 illustrations. Very short chapters (<5 paragraphs) should have 1-2. Add missing illustrations where needed.
+2. VARIETY — Avoid 3 "spot" or 3 "full" in the same chapter. Mix tiers for visual rhythm: most chapters should have 1 full + 2-3 spots, OR 2 halves + 1 spot.
+3. DESCRIPTION QUALITY — Every description must be SPECIFIC and tied to a concrete moment in the prose. Reject vague descriptions like "character in setting" or "nice scene". Rewrite with specific action + emotion + setting. Reference the prose text directly.
+4. CHARACTER ATTRIBUTION — `characters_in_page` must match who appears in the scene. If description says "Brenda brushing Ash", list must include ["Brenda","Ash"].
+5. NO DUPLICATES — Within a chapter, no two illustrations should depict the same moment. Diversify.
+6. EMOTIONAL PEAK — Every chapter should have one "full" tier for its emotional/narrative climax. Identify it from the prose.
+
+Return ONLY valid JSON (the complete revised plan):
+{{
+  "critique": ["list of fixes applied, max 10 items"],
+  "illustration_plan": [
+    {{"page_number": <int unique id>, "chapter": <int>, "type": "full"|"spot"|"spread", "description": "specific scene with action, emotion, setting", "characters_in_page": ["name"]}},
+    ...
+  ]
+}}
+
+Keep existing page_number ids where possible. For NEW items add new unique ids (current max + 1, 2, 3...). Do NOT remove items unless clearly duplicates — REFINE them instead.
+"""
+    try:
+        raw = (await _call_claude_async(
+            f"You are a senior art director. Output strictly valid JSON in {lang}.",
+            prompt,
+            max_tokens=8000,
+        )).strip()
+        if raw.startswith("```"):
+            raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+        result = json.loads(raw)
+    except Exception as e:
+        logger.error(f"BookFactory Revisor de Plano failed: {e}")
+        raise HTTPException(status_code=502, detail=f"Plan review failed: {str(e)[:200]}")
+
+    new_plan = result.get("illustration_plan", plan)
+    # Preserve illustration_url for items whose page_number + description match the old ones
+    old_by_pn = {p.get("page_number"): p for p in plan}
+    for item in new_plan:
+        pn = item.get("page_number")
+        old = old_by_pn.get(pn)
+        # Keep image if description is similar enough OR both existed
+        if old and old.get("illustration_url"):
+            # Only keep image if description is meaningfully similar (first 40 chars match)
+            old_desc = (old.get("description") or "")[:60].lower().strip()
+            new_desc = (item.get("description") or "")[:60].lower().strip()
+            if old_desc and new_desc and (old_desc == new_desc or old_desc in new_desc or new_desc in old_desc):
+                item["illustration_url"] = old.get("illustration_url")
+                item["generated_at"] = old.get("generated_at")
+
+    bb["illustration_plan"] = new_plan
+    bb["plan_reviewed"] = True
+    bb["plan_review_critique"] = result.get("critique", [])
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _add_milestone(project, "book_plan_reviewed", f"Revisor de Plano: {len(new_plan)} itens ({len(new_plan) - len(plan):+d})")
+    _save_project(tenant["id"], settings, projects)
+    return {
+        "status": "reviewed",
+        "items_before": len(plan),
+        "items_after": len(new_plan),
+        "critique": result.get("critique", []),
+    }
+
+
+
 async def book_audit_illustrations(project_id: str, auto_regenerate: bool = False, tenant=Depends(get_current_tenant)):
     """Curador Visual: multimodal LLM audits each generated illustration and flags outliers
     (decorative borders/frames inside the image, wrong style, missing characters, extra characters,
@@ -1853,6 +2052,13 @@ async def _run_book_pipeline_background(tenant: dict, project_id: str):
                 except Exception as e:
                     _log(f"Capítulo {idx} falhou: {str(e)[:150]}", f"chapter_{idx}_error")
 
+            # 🆕 Revisor Literário: audits written prose before moving on
+            _log("Revisor Literário auditando prosa", "review_chapters")
+            try:
+                await book_review_chapters(project_id, tenant)
+            except Exception as e:
+                _log(f"Revisor Literário falhou (seguindo): {str(e)[:150]}", "review_chapters_error")
+
             # Plan illustrations (only if track != none)
             track = (bb.get("brief") or {}).get("illustration_track", "none")
             if track != "none":
@@ -1861,6 +2067,13 @@ async def _run_book_pipeline_background(tenant: dict, project_id: str):
                     await book_plan_illustrations(project_id, tenant)
                 except Exception as e:
                     _log(f"Plano de ilustração falhou: {str(e)[:150]}", "plan_illustrations_error")
+
+                # 🆕 Revisor de Plano: audits illustration plan BEFORE expensive image gen
+                _log("Revisor de Plano auditando plano", "review_plan")
+                try:
+                    await book_review_illustration_plan(project_id, tenant)
+                except Exception as e:
+                    _log(f"Revisor de Plano falhou (seguindo): {str(e)[:150]}", "review_plan_error")
 
                 # Generate each planned illustration
                 s2, p2, pr2 = _get_project(tenant["id"], project_id)
@@ -1873,23 +2086,26 @@ async def _run_book_pipeline_background(tenant: dict, project_id: str):
                     pn = item.get("page_number")
                     if not pn:
                         continue
+                    # Skip if already generated (from plan review preserving images)
+                    if item.get("illustration_url"):
+                        continue
                     try:
                         await book_generate_illustration(project_id, IllustrationGenerateRequest(page_number=pn), tenant)
                         _log(f"Ilustração p.{pn} gerada", f"illustrate_p{pn}")
                     except Exception as e:
                         _log(f"Ilustração p.{pn} falhou: {str(e)[:150]}", f"illustrate_p{pn}_error")
 
-            # Curador Visual: multimodal audit + auto-regenerate outliers
-            _log("Curador Visual auditando imagens", "audit_illustrations")
-            try:
-                audit_res = await book_audit_illustrations(project_id, auto_regenerate=True, tenant=tenant)
-                flagged_count = len(audit_res.get("flagged", []) or [])
-                regen_count = len(audit_res.get("auto_regenerated", []) or [])
-                _log(f"Curador: {flagged_count} flagged, {regen_count} regenerated", "audit_done")
-            except Exception as e:
-                _log(f"Curador falhou (seguindo): {str(e)[:150]}", "audit_error")
+                # Curador Visual: multimodal audit + auto-regenerate outliers
+                _log("Curador Visual auditando imagens", "audit_illustrations")
+                try:
+                    audit_res = await book_audit_illustrations(project_id, auto_regenerate=True, tenant=tenant)
+                    flagged_count = len(audit_res.get("hard_flagged", []) or [])
+                    regen_count = len(audit_res.get("auto_regenerated", []) or [])
+                    _log(f"Curador: {flagged_count} flagged, {regen_count} regenerated", "audit_done")
+                except Exception as e:
+                    _log(f"Curador falhou (seguindo): {str(e)[:150]}", "audit_error")
 
-            # Cover
+            # Cover (now AFTER body illustrations — aesthetic coherent with interior)
             _log("Gerando capa", "cover")
             try:
                 await book_generate_cover_v2(project_id, tenant)
