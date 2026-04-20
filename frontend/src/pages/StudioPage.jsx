@@ -1638,119 +1638,60 @@ export default function StudioPage() {
 
   // Project List View
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ═══ NAVBAR ═══ */}
-      <nav className="sticky top-0 z-50 bg-gray-50/95 backdrop-blur-xl border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex items-center justify-between h-16 gap-3 flex-wrap">
-            {/* Left: Logo + Back */}
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => navigate('/')}
-                className="flex items-center gap-2 text-gray-900/70 hover:text-gray-900 transition group"
-                title="Voltar ao Dashboard"
-              >
-                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition" />
-                <span className="text-sm font-medium">Dashboard</span>
-              </button>
-              
-              <div className="h-8 w-px bg-gray-100" />
-              
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#7C3AED] shadow-lg shadow-[#8B5CF6]/20 shrink-0">
-                  <Film size={16} className="text-white" />
-                </div>
-                <div>
-                  <h1 className="text-sm font-bold text-gray-900 whitespace-nowrap">Estúdio</h1>
-                  <p className="text-[10px] text-gray-600 whitespace-nowrap">Seus projetos</p>
-                </div>
-              </div>
-            </div>
+    <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0A0614]" style={{ fontFamily: "'Outfit', system-ui" }}>
+      {/* ═══ CONTEXT BAR (pinned under global app header) ═══ */}
+      <div className="sticky top-0 z-20 bg-white dark:bg-[#0A0614] border-b border-gray-200 dark:border-[#2A2442]">
+        <div className="max-w-7xl mx-auto px-6 h-12 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-white">Projetos</h1>
+            <span className="text-[10px] font-mono text-gray-400 dark:text-[#6B647F]">{projects.length}</span>
+          </div>
 
-            {/* Center: Mode Switcher */}
-            <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg p-1 shrink-0">
-              <button
-                onClick={() => navigate('/studio')}
-                className="px-3 py-1.5 text-xs font-medium rounded-md transition bg-[#8B5CF6] text-white whitespace-nowrap"
-              >
-                Vídeos
-              </button>
-              <button
-                onClick={() => navigate('/traffic-hub')}
-                className="px-3 py-1.5 text-xs font-medium rounded-md transition text-gray-600 hover:text-gray-900 hover:bg-gray-200 whitespace-nowrap"
-              >
-                Marketing
-              </button>
-            </div>
-
-            {/* Right: Project Count + Actions */}
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg font-medium whitespace-nowrap">
-                {projects.length} {projects.length === 1 ? 'projeto' : 'projetos'}
-              </span>
-              
-              {/* Global Character Library Button */}
-              <button
-                onClick={() => {
-                  setAvatarPreviewUrl(null);
-                  setShowGlobalLibrary(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#8B5CF6]/10 to-[#7C3AED]/10 border border-[#8B5CF6]/30 text-xs font-semibold text-[#8B5CF6] hover:from-[#8B5CF6]/20 hover:to-[#7C3AED]/20 transition-all hover:scale-105 whitespace-nowrap"
-                title="Galeria de Personagens"
-              >
-                <BookOpen size={14} className="shrink-0" />
-                <span>Galeria</span>
-              </button>
-              
-              <button 
-                onClick={() => window.location.assign('/studio/book')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/15 to-orange-600/15 border border-amber-500/40 text-xs font-semibold text-amber-700 hover:from-amber-500/25 hover:to-orange-600/25 transition-all hover:scale-105 whitespace-nowrap"
-                title="BookFactory — Criar livro ilustrado"
-                data-testid="nav-bookfactory"
-              >
-                <BookOpen size={14} className="shrink-0" />
-                <span>📖 Livro</span>
-              </button>
-
-              <button 
-                onClick={openNewProjectModal}
-                disabled={creating}
-                className="btn-gold flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 transition-all hover:scale-105 shadow-lg shadow-[#F59E0B]/20 whitespace-nowrap"
-                title="Criar Novo Projeto"
-              >
-                <Plus size={14} className="shrink-0" />
-                <span>Novo</span>
-              </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setAvatarPreviewUrl(null); setShowGlobalLibrary(true); }}
+              className="hidden sm:inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-medium text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20 border border-violet-100 dark:border-violet-500/20 transition"
+              data-testid="btn-global-library"
+            >
+              <BookOpen size={12} /> Galeria
+            </button>
+            <button
+              onClick={openNewProjectModal}
+              disabled={creating}
+              data-testid="btn-new-project"
+              className="h-7 px-3 rounded-md bg-gradient-to-r from-orange-500 to-orange-600 text-white text-[11px] font-semibold hover:brightness-110 transition flex items-center gap-1 shadow-[0_0_12px_rgba(249,115,22,0.25)] disabled:opacity-50"
+            >
+              <Plus size={12} strokeWidth={2.5} /> Novo Projeto
+            </button>
           </div>
         </div>
-      </nav>
+      </div>
 
       {/* ═══ CONTENT ═══ */}
-      <div className="px-6 sm:px-8 lg:px-12 py-6 pb-28">
-        <div className="max-w-5xl mx-auto">
+      <div className="px-6 py-5 pb-28">
+        <div className="max-w-7xl mx-auto">
           {/* Company Selector — compact chip (expandable) */}
           {!selectedProject && companies.length > 0 && (
             <div className="mb-4">
               <button
                 onClick={() => setShowCompanySelector(!showCompanySelector)}
                 data-testid="company-chip"
-                className="inline-flex items-center gap-2 text-xs rounded-full border border-gray-200 bg-white hover:border-orange-300 hover:bg-orange-50/40 px-3 py-1.5 transition group"
+                className="inline-flex items-center gap-2 text-xs rounded-full border border-gray-200 dark:border-[#2A2442] bg-white dark:bg-[#1A1430] hover:border-violet-300 dark:hover:border-violet-500/40 px-3 py-1.5 transition group"
               >
-                <Users size={13} className="text-orange-500" />
-                <span className="text-gray-500">Empresa:</span>
-                <span className="font-semibold text-gray-900 truncate max-w-[240px]">
+                <Users size={13} className="text-violet-500" />
+                <span className="text-gray-500 dark:text-[#A3A3B2]">Empresa:</span>
+                <span className="font-semibold text-gray-900 dark:text-white truncate max-w-[240px]">
                   {selectedCompany ? selectedCompany.name : 'Nenhuma selecionada'}
                 </span>
                 <ChevronRight
                   size={12}
-                  className={`text-gray-400 group-hover:text-orange-500 transition-transform ${showCompanySelector ? 'rotate-90' : ''}`}
+                  className={`text-gray-400 group-hover:text-violet-500 transition-transform ${showCompanySelector ? 'rotate-90' : ''}`}
                 />
               </button>
 
               {/* Company List (collapsible) */}
               {showCompanySelector && (
-                <div className="mt-3 grid gap-2 bg-gray-50 rounded-xl p-3 border border-gray-200" data-testid="company-list">
+                <div className="mt-3 grid gap-2 bg-gray-50 dark:bg-[#110A1F] rounded-xl p-3 border border-gray-200 dark:border-[#2A2442]" data-testid="company-list">
                   {companies.map(company => (
                     <button
                       key={company.id}

@@ -1,5 +1,55 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 11 — Fase 2: Nova Navegação — Sidebar + Dark/Light Toggle)
+
+### Mudanças estruturais
+
+**Novo chrome global:**
+- `components/layout/Sidebar.jsx` (novo) — sidebar fixa 240px à esquerda com itens: Projetos / Personagens / Agentes / Configurações, contadores dinâmicos, avatar+créditos no rodapé. Desktop only (`hidden md:flex`).
+- `components/layout/AppLayout.jsx` — reescrito. Remove BottomNav e TechGridBg. Novo header fixo (48px) à direita da sidebar com: toggle de tema (Sun/Moon), avatar dropdown (idioma + logout + settings).
+- `contexts/ThemeContext.jsx` (novo) — provider `ThemeProvider` com `localStorage` (`studiox_theme`). Toggle adiciona/remove classe `dark` no `<html>`.
+
+**Rotas migradas para AppLayout:**
+- `/studio` agora está dentro do `<AppLayout />` (ganhou sidebar + header + toggle).
+- `/dashboard`, `/chat`, `/agents`, `/crm`, `/analytics`, `/marketing`, `/settings`, `/pricing` já estavam e ganharam o novo layout automaticamente.
+- `/studio/book/:projectId`, `/studio/book`, `/studio/agents` ficaram fora do AppLayout (wizards em tela cheia para foco no conteúdo).
+
+**StudioPage reescrita (parcial):**
+- Removida navbar antiga (seta "Dashboard", toggle Vídeos/Marketing, botão "📖 Livro" duplicado).
+- Novo "context bar" interno: `Projetos N · Galeria · Novo Projeto` (compacto, inline).
+- Banner "Empresa do Projeto" já tinha virado chip (Session 10) — agora com tokens dark.
+
+**Paleta de marca aplicada** (após análise de brand asset do usuário):
+- Primário: **violeta** (`violet-500/700` com glow)
+- Secundário/CTA: **laranja** (`orange-500/600` vibrante)
+- Fundos dark: `#0A0614`, `#110A1F`, `#1A1430`
+- Bordas dark: `#2A2442`
+- Todos os novos elementos suportam `dark:` variants
+
+**Tipografia:**
+- Outfit (headings) + Manrope (body) + Inter (legacy) — adicionadas ao `public/index.html`.
+
+**Remoções:**
+- `pages/UxPreview.jsx` (rota temporária `/ux-preview` removida).
+
+### Validação
+
+Smoke test via Playwright:
+- `data-testid="app-sidebar"` count = 1 ✓
+- `data-testid="header-theme-toggle"` count = 1 ✓
+- Toggle: `document.documentElement.classList.contains('dark')` alterna corretamente ✓
+- StudioPage carrega com 66 projetos listados nos dois temas ✓
+- Sidebar nav: Projetos ativo destacado (roxo+bar lateral), contadores funcionando ✓
+- Avatar dropdown continua funcional (idioma, edit, billing, logout) ✓
+
+### Fora de escopo (propositadamente)
+
+- BookStudio, DirectedStudio e outras páginas de wizard permanecem em light mode com âmbar — decisão consciente: o toggle global é **preparado para expansão gradual**, e o tema já se aplica automaticamente quando essas páginas forem refatoradas.
+- BottomNav (mobile) ainda existe mas não renderiza nas rotas novas — mobile-first drawer fica para a Fase 3.
+- Unificação Dashboard + StudioPage em `/projetos` único: **não feita** nesta sessão. StudioPage já funciona como "home de projetos" e Dashboard ainda é rota separada (mantida para back-compat).
+
+---
+
 ## 2026-04-20 (Session 10 — UX Fase 1: Quick Wins de Minimalismo)
 
 ### Redução de ruído visual sem tocar em funcionalidade

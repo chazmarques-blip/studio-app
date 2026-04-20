@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { StudioProductionProvider } from './contexts/StudioProductionContext';
 import { StudioProductionBanner } from './components/StudioProductionBanner';
 import { AppLayout } from './components/layout/AppLayout';
@@ -52,7 +53,6 @@ const PageLoader = () => (
 
 // ── Code Splitting: Heavy pages loaded on demand ──
 const LandingV2 = React.lazy(() => import('./pages/LandingV2'));
-const UxPreview = React.lazy(() => import('./pages/UxPreview'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const OnboardingAgentLang = React.lazy(() => import('./pages/OnboardingAgentLang'));
@@ -110,6 +110,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ThemeProvider>
         <StudioProductionProvider>
         <ErrorBoundary>
         <Toaster 
@@ -125,7 +126,6 @@ function App() {
         <Routes>
           {/* Public */}
           <Route path="/" element={<PublicRoute><LandingV2 /></PublicRoute>} />
-          <Route path="/ux-preview" element={<UxPreview />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           {/* Onboarding */}
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
@@ -133,6 +133,7 @@ function App() {
           {/* App with bottom nav */}
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/studio" element={<StudioPage />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/agents" element={<Agents />} />
             <Route path="/crm" element={<CRM />} />
@@ -151,7 +152,6 @@ function App() {
           <Route path="/settings/channels" element={<ProtectedRoute><ChannelConnection /></ProtectedRoute>} />
           <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
           <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
-          <Route path="/studio" element={<ProtectedRoute><StudioPage /></ProtectedRoute>} />
           <Route path="/studio/book/:projectId" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
           <Route path="/studio/book" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
           <Route path="/studio/agents" element={<ProtectedRoute><AgentsPage /></ProtectedRoute>} />
@@ -164,6 +164,7 @@ function App() {
         </Suspense>
         </ErrorBoundary>
         </StudioProductionProvider>
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );
