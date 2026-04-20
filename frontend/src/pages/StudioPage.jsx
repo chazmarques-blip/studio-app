@@ -1729,33 +1729,28 @@ export default function StudioPage() {
       {/* ═══ CONTENT ═══ */}
       <div className="px-6 sm:px-8 lg:px-12 py-6 pb-28">
         <div className="max-w-5xl mx-auto">
-          {/* Company Selector */}
+          {/* Company Selector — compact chip (expandable) */}
           {!selectedProject && companies.length > 0 && (
-            <div className="mb-6 bg-gradient-to-r from-[#8B5CF6]/10 to-transparent border border-orange-500/20 rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#8B5CF6]/20">
-                    <Users size={20} className="text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-900/50 mb-0.5">Empresa do Projeto</p>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {selectedCompany ? selectedCompany.name : 'Selecione uma empresa'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCompanySelector(!showCompanySelector)}
-                  className="text-xs text-orange-600 hover:text-[#9F7CF6] transition flex items-center gap-1"
-                >
-                  {showCompanySelector ? 'Fechar' : 'Trocar'}
-                  <ChevronRight size={14} className={`transition-transform ${showCompanySelector ? 'rotate-90' : ''}`} />
-                </button>
-              </div>
-              
-              {/* Company List */}
+            <div className="mb-4">
+              <button
+                onClick={() => setShowCompanySelector(!showCompanySelector)}
+                data-testid="company-chip"
+                className="inline-flex items-center gap-2 text-xs rounded-full border border-gray-200 bg-white hover:border-orange-300 hover:bg-orange-50/40 px-3 py-1.5 transition group"
+              >
+                <Users size={13} className="text-orange-500" />
+                <span className="text-gray-500">Empresa:</span>
+                <span className="font-semibold text-gray-900 truncate max-w-[240px]">
+                  {selectedCompany ? selectedCompany.name : 'Nenhuma selecionada'}
+                </span>
+                <ChevronRight
+                  size={12}
+                  className={`text-gray-400 group-hover:text-orange-500 transition-transform ${showCompanySelector ? 'rotate-90' : ''}`}
+                />
+              </button>
+
+              {/* Company List (collapsible) */}
               {showCompanySelector && (
-                <div className="mt-4 pt-4 border-t border-white/5 grid gap-2">
+                <div className="mt-3 grid gap-2 bg-gray-50 rounded-xl p-3 border border-gray-200" data-testid="company-list">
                   {companies.map(company => (
                     <button
                       key={company.id}
@@ -1766,19 +1761,19 @@ export default function StudioPage() {
                       }}
                       className={`text-left p-3 rounded-lg border transition ${
                         selectedCompany?.id === company.id
-                          ? 'border-orange-500 bg-[#8B5CF6]/10'
-                          : 'border-white/5 bg-gray-100 hover:border-white/10'
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200 bg-white hover:border-orange-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-gray-900">{company.name}</p>
                           {company.phone && (
-                            <p className="text-xs text-gray-900/50 mt-0.5">{company.phone}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{company.phone}</p>
                           )}
                         </div>
                         {company.is_primary && (
-                          <span className="text-[9px] bg-[#8B5CF6]/20 text-orange-600 px-2 py-0.5 rounded-full">
+                          <span className="text-[9px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-semibold">
                             PRINCIPAL
                           </span>
                         )}
@@ -1787,7 +1782,7 @@ export default function StudioPage() {
                   ))}
                   <button
                     onClick={() => navigate('/marketing')}
-                    className="p-3 rounded-lg border border-dashed border-white/20 hover:border-orange-500/50 text-gray-900/50 hover:text-gray-900 transition text-sm"
+                    className="p-3 rounded-lg border border-dashed border-gray-300 hover:border-orange-400 text-gray-500 hover:text-orange-600 transition text-sm"
                   >
                     + Gerenciar Empresas
                   </button>

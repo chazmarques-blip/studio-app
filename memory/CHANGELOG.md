@@ -1,5 +1,40 @@
 # StudioX Changelog
 
+## 2026-04-20 (Session 10 — UX Fase 1: Quick Wins de Minimalismo)
+
+### Redução de ruído visual sem tocar em funcionalidade
+
+**1. `AppLayout.jsx` — Language switcher movido para o dropdown do avatar**
+- Antes: EN/PT/ES sempre visível no header global (3 botões permanentes que o usuário mexe 1× por vida)
+- Agora: dentro do dropdown do avatar, seção "IDIOMA" com Globe icon e Check visual no idioma ativo
+- Header ficou mais leve: só logo + créditos + avatar
+
+**2. `DashboardStudio.jsx` — Seção "Agentes do Estúdio" removida**
+- Antes: 6 cards pesados (Screenwriter, Shot Director, Continuity, Voice Designer, Sound Agent, Producer) ocupando meia tela na Dashboard
+- Era redundante com a tab "Agentes" na BottomNav
+- Array `studioAgents` (44 linhas) removido junto
+
+**3. `BookStudio.jsx` — Toolbar de render consolidada**
+- Antes: 5 botões inline (Baixar · Nova aba · Editar ilustrações · Editar capa · Renderizar)
+- Agora: "Baixar PDF" (CTA primária) + "Mais" (dropdown com as 4 ações secundárias)
+- Dropdown fecha com click-outside (padrão UX)
+
+**4. `StudioPage.jsx` — Banner "Empresa do Projeto" → chip discreto**
+- Antes: card gradient grande (80px+ de altura) com ícone 40px e 2 linhas de texto
+- Agora: pill inline "Empresa: {name} ›" (30px altura) que expande ao clicar
+- Libera ~60px verticais na home do Studio
+
+### Validação automatizada (screenshots + DOM queries)
+- Dashboard: seção "Agentes do Estúdio" count = 0 ✓
+- Header: `data-testid="header-lang-selector"` count = 0 ✓
+- Avatar dropdown: `data-testid="profile-lang-selector"` count = 1 ✓
+- BookStudio: `render-more-menu` + 4 itens (open-pdf, edit-illustrations, edit-cover, rerender) ✓
+- StudioPage: `company-chip` count = 1 ✓
+
+**Impacto UX:** Dashboard ~280px mais curta, BookStudio toolbar visualmente limpa, StudioPage com +60px úteis. Zero regressão funcional — todas as ações antigas continuam acessíveis.
+
+---
+
 ## 2026-04-20 (Session 9 — Cleanup Tier 2 + Tier 3: Docs legados + Tests antigos)
 
 ### Tier 2 — Documentação do projeto anterior (AgentFlow) removida

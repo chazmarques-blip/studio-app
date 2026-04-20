@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { BottomNav } from './BottomNav';
-import { Zap, UserCog, CreditCard, LogOut } from 'lucide-react';
+import { Zap, UserCog, CreditCard, LogOut, Globe, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -92,25 +92,6 @@ function AppHeader() {
         </button>
 
         <div className="flex items-center gap-2">
-          {/* Language Selector */}
-          <div className="hidden sm:flex items-center border border-gray-300 rounded-lg overflow-hidden" data-testid="header-lang-selector">
-            {[
-              { code: 'en', label: 'EN' },
-              { code: 'pt', label: 'PT' },
-              { code: 'es', label: 'ES' },
-            ].map(lg => (
-              <button key={lg.code} data-testid={`header-lang-${lg.code}`}
-                onClick={() => i18n.changeLanguage(lg.code)}
-                className={`px-2.5 py-1.5 text-[11px] font-mono font-semibold transition-all ${
-                  lang === lg.code
-                    ? 'bg-orange-500 text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}>
-                {lg.label}
-              </button>
-            ))}
-          </div>
-
           {/* Credits */}
           <div data-testid="header-credits" onClick={() => navigate('/pricing')}
             className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 cursor-pointer hover:border-orange-300 hover:shadow-md transition-all">
@@ -155,6 +136,33 @@ function AppHeader() {
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-600 font-medium transition hover:bg-gray-50 hover:text-gray-900">
                   <CreditCard size={15} /> {t('profile.billing')}
                 </button>
+
+                {/* Language selector (moved from header for cleaner UI) */}
+                <div className="my-1 border-t border-gray-100" />
+                <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">
+                  <Globe size={11} /> Idioma
+                </div>
+                <div className="px-1.5 pb-1.5 grid grid-cols-3 gap-1" data-testid="profile-lang-selector">
+                  {[
+                    { code: 'pt', label: 'PT' },
+                    { code: 'en', label: 'EN' },
+                    { code: 'es', label: 'ES' },
+                  ].map(lg => (
+                    <button
+                      key={lg.code}
+                      data-testid={`profile-lang-${lg.code}`}
+                      onClick={() => i18n.changeLanguage(lg.code)}
+                      className={`flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-mono font-semibold transition ${
+                        lang === lg.code
+                          ? 'bg-orange-500 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {lang === lg.code && <Check size={10} />}
+                      {lg.label}
+                    </button>
+                  ))}
+                </div>
                 <div className="my-1 border-t border-gray-100" />
                 <button data-testid="profile-logout-btn" onClick={async () => { await signOut(); toast.success(t('settings.sign_out')); navigate('/'); }}
                   className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-600 font-medium transition hover:bg-red-50 hover:text-red-600">

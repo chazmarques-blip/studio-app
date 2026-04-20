@@ -212,51 +212,6 @@ export default function Dashboard() {
   };
   const l = L[lang] || L.en;
 
-  const studioAgents = [
-    { 
-      icon: FileText, 
-      name: 'Screenwriter', 
-      role: 'Roteirista IA',
-      description: 'Cria roteiros profissionais com cenas, diálogos e direções.',
-      color: 'bg-gradient-to-br from-blue-500 to-blue-600'
-    },
-    { 
-      icon: Clapperboard, 
-      name: 'Shot Director', 
-      role: 'Diretor de Cenas',
-      description: 'Gera prompts visuais e dirige cada quadro do storyboard.',
-      color: 'bg-gradient-to-br from-purple-500 to-purple-600'
-    },
-    { 
-      icon: Palette, 
-      name: 'Continuity', 
-      role: 'Diretor de Continuidade',
-      description: 'Mantém consistência visual de personagens entre cenas.',
-      color: 'bg-gradient-to-br from-pink-500 to-pink-600'
-    },
-    { 
-      icon: Mic, 
-      name: 'Voice Designer', 
-      role: 'Design de Voz',
-      description: 'Cria vozes únicas e expressivas para cada personagem.',
-      color: 'bg-gradient-to-br from-amber-500 to-amber-600'
-    },
-    { 
-      icon: Volume2, 
-      name: 'Sound Agent', 
-      role: 'Sonoplastia IA',
-      description: 'Projeta paisagem sonora e efeitos para cada cena.',
-      color: 'bg-gradient-to-br from-emerald-500 to-emerald-600'
-    },
-    { 
-      icon: Video, 
-      name: 'Producer', 
-      role: 'Produtor IA',
-      description: 'Gerencia pipeline de produção e exportação de vídeos.',
-      color: 'bg-gradient-to-br from-red-500 to-red-600'
-    },
-  ];
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -350,32 +305,6 @@ export default function Dashboard() {
             </button>
           </div>
         )}
-      </motion.div>
-
-      {/* ── Studio Agents ── */}
-      <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={4} className="mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900">{l.studioAgents}</h2>
-            <p className="text-[10px] text-[#666]">{l.agentsDesc}</p>
-          </div>
-          <button 
-            onClick={() => navigate('/agents')}
-            className="text-[10px] text-orange-600 hover:underline flex items-center gap-1"
-          >
-            <Settings size={10} /> Configurar
-          </button>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          {studioAgents.map((agent, i) => (
-            <AgentCard 
-              key={i} 
-              {...agent} 
-              onClick={() => navigate('/agents')}
-            />
-          ))}
-        </div>
       </motion.div>
 
       {/* ── Plan & Settings ── */}

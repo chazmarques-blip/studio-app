@@ -1,111 +1,143 @@
 {
-  "project_name": "AgentZZ Directed Studio Mode - Step 5 Redesign",
-  "theme": "dark",
-  "archetype": "5 (Jewel & Luxury)",
-  "design_philosophy": "Cinematic Director's Cut. Organize the chaos of production into an elegant, prioritized showcase. Deep blacks, sharp 1px borders, high contrast. Tension between classic cinema (Serif) and digital utility (Mono/Sans).",
-  "color_palette": {
-    "background": {
-      "primary": "#000000",
-      "secondary": "#0A0A0A",
-      "surface": "rgba(10, 10, 10, 0.7)"
+  "theme_archetype": "Archetype 4: Swiss & High-Contrast (Dark Mode Variant). Chosen to make the creative media (videos, book covers) pop against a deep, structural, and distraction-free interface like Linear or Arc Browser.",
+  "design_language": {
+    "colors": {
+      "background_app": "#0A0A0A",
+      "background_sidebar": "#121212",
+      "background_card": "#171717",
+      "border_subtle": "#262626",
+      "border_focus": "#525252",
+      "text_primary": "#F5F5F5",
+      "text_secondary": "#A3A3A3",
+      "text_tertiary": "#737373",
+      "action_primary_bg": "#EDEDED",
+      "action_primary_text": "#0A0A0A",
+      "action_secondary_bg": "#262626",
+      "action_secondary_text": "#EDEDED",
+      "accent_hybrid": "#F59E0B",
+      "accent_video": "#3B82F6",
+      "accent_book": "#10B981"
     },
-    "text": {
-      "primary": "#FFFFFF",
-      "secondary": "#A1A1AA",
-      "muted": "#52525B"
-    },
-    "accent": {
-      "gold": "#C9A84C",
-      "gold_muted": "rgba(201, 168, 76, 0.2)",
-      "emerald": "#10B981",
-      "amber": "#F59E0B",
-      "red": "#EF4444",
-      "blue": "#3B82F6",
-      "purple": "#8B5CF6"
-    }
-  },
-  "typography": {
-    "heading_font": "Cormorant Garamond, serif",
-    "body_font": "Manrope, sans-serif",
-    "mono_font": "JetBrains Mono, monospace",
-    "scale": {
-      "h1": "text-3xl sm:text-4xl lg:text-5xl tracking-tighter font-serif leading-none",
-      "h2": "text-xl sm:text-2xl lg:text-3xl tracking-tight font-serif",
-      "h3": "text-lg font-serif",
-      "body": "text-sm sm:text-base font-sans leading-relaxed text-zinc-300",
-      "label": "text-[10px] sm:text-xs font-mono tracking-widest uppercase text-zinc-500",
-      "status": "text-[10px] sm:text-xs font-mono tracking-wider"
-    }
-  },
-  "layout_strategy": {
-    "global": "Mobile-first stacked grid. Deep generous padding (`p-6` to `p-8`) inside containers to let content breathe. Avoid generic Bootstrap-style equal columns.",
-    "pipeline_navigation": "A minimalist 'timeline' track. Active step glows gold, completed steps are stark white, future steps are deep gray. Hide text labels on mobile, showing only current step. Avoid bulky pills.",
-    "step_4_production": "Sterile 'Control Room' grid tracking rendering progress per scene. Focus on data density, monospace time estimates, and clear status badges.",
-    "step_5_result": "A 'Deliverables Showcase' bento layout. 1. The Hero Card (O Filme Completo) takes full width at the top. 2. A dense grid for secondary products (Dublado, Narrado, Livros). 3. A horizontal cinematic scroll for individual scenes."
-  },
-  "components": {
-    "cards": {
-      "base": "relative backdrop-blur-2xl bg-black/60 border border-white/5 rounded-none sm:rounded-xl overflow-hidden group",
-      "hero": "border-gold/30 hover:border-gold/60 transition-colors duration-500. Large 16:9 media area with a dark gradient overlay (`bg-gradient-to-t from-black/80 via-black/20 to-transparent`).",
-      "interactive": "Hover state: subtle lift (`-translate-y-1`), inner border glow (`shadow-[inset_0_0_20px_rgba(201,168,76,0.05)]`)."
-    },
-    "buttons": {
-      "primary_gold": "bg-[#C9A84C] text-black font-semibold hover:bg-white transition-colors duration-300 rounded-sm px-6 py-2.5 text-sm uppercase tracking-wide",
-      "secondary": "bg-transparent border border-white/10 text-white hover:bg-white/5 transition-colors duration-300 rounded-sm px-4 py-2.5 text-sm font-sans",
-      "icon_floating": "absolute bottom-4 right-4 h-10 w-10 rounded-full bg-black/50 backdrop-blur-md border border-white/10 text-white hover:border-gold hover:text-gold flex items-center justify-center transition-all z-10"
-    },
-    "status_indicators": {
-      "done": "flex items-center gap-2 text-emerald-400 before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-emerald-400 before:shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-      "processing": "flex items-center gap-2 text-amber-400 animate-pulse before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-amber-400 before:shadow-[0_0_8px_rgba(245,158,11,0.5)]",
-      "error": "flex items-center gap-2 text-red-400 before:content-[''] before:w-1.5 before:h-1.5 before:rounded-full before:bg-red-400 before:shadow-[0_0_8px_rgba(239,68,68,0.5)]"
-    }
-  },
-  "view_architecture": [
-    {
-      "name": "PipelineNavigation",
-      "purpose": "Track progress across the 5 steps: Roteiro, Personagens, Storyboard, Produção, Resultado.",
-      "implementation": "Render as a thin horizontal progress line (1px) connecting small nodes. Active node is gold, others white/gray. Below the active node, display the step name in `font-serif`."
-    },
-    {
-      "name": "ResultadoShowcase",
-      "purpose": "The main Step 5 view. Transforms the flat list into a professional product handoff.",
-      "implementation": "1. Hero Section: 'O Filme Completo' - A 16:9 cinematic card with primary play/download actions. 2. Bento Grid: 2-column layout (on sm+) for 'Vídeo Narrado', 'Vídeo Dublado', 'Livro Animado', 'Storyboard PDF'. 3. Horizontal Scroll: 'Cenas Individuais' thumbnails mapped dynamically from the outputs array."
-    },
-    {
-      "name": "PostProductionDrawer",
-      "purpose": "Panel for voice selection, music, localization, subtitles.",
-      "implementation": "Use a Shadcn Sheet (bottom drawer on mobile, right side on desktop) or a minimal Accordion to hide these technical tweaks. Do not clutter the main deliverable showcase. Use a button like 'Ajustes de Pós-Produção' to trigger it."
-    }
-  ],
-  "micro_interactions": {
-    "hover_image": "Thumbnail images inside cards should scale up slightly (`scale-105`) with a smooth 500ms duration on parent group hover.",
-    "loading_state": "Replace standard spinners with a cinematic 'tracing line' (an animated 1px border) or a minimal data-loading text ticker (`[RENDERIZANDO...]`)."
-  },
-  "media": {
-    "images": [
-      {
-        "category": "hero_placeholder",
-        "url": "https://images.pexels.com/photos/3379943/pexels-photo-3379943.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "description": "Cinematic dark studio photo. Use as a fallback poster for 'O Filme Completo' if no video thumbnail is available."
+    "typography": {
+      "fonts": {
+        "heading": "Outfit, sans-serif (Geometric, premium, clean)",
+        "body": "Manrope, sans-serif (Highly legible at small sizes, structural)"
       },
-      {
-        "category": "scene_placeholder",
-        "url": "https://images.unsplash.com/photo-1698533188477-5fd401563eaa?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwxfHxkYXJrJTIwY2luZW1hdGljJTIwZmlsbSUyMHN0dWRpb3xlbnwwfHx8fDE3NzQ1NjEwNTN8MA&ixlib=rb-4.1.0&q=85",
-        "description": "Moody, dark placeholder for individual scene video cards."
+      "scale": {
+        "h1": "text-3xl font-heading tracking-tight",
+        "h2": "text-2xl font-heading tracking-tight",
+        "h3": "text-lg font-heading font-medium",
+        "body": "text-sm font-body leading-relaxed text-secondary",
+        "label": "text-xs font-body uppercase tracking-[0.05em] text-tertiary font-semibold"
       }
-    ],
-    "icons": "Use lucide-react. Force thin strokes (`strokeWidth={1.2}`) for a sharper, high-end feel."
+    },
+    "spacing_and_layout": {
+      "container": "max-w-7xl mx-auto px-6",
+      "gap_standard": "gap-6",
+      "gap_dense": "gap-3",
+      "padding_card": "p-5"
+    },
+    "radii_and_shadows": {
+      "radius_card": "rounded-xl",
+      "radius_button": "rounded-lg",
+      "radius_pill": "rounded-full",
+      "shadow_ambient": "shadow-[0_8px_30px_rgb(0,0,0,0.4)]",
+      "shadow_floating": "shadow-[0_20px_40px_rgb(0,0,0,0.6)]",
+      "border_treatment": "1px solid border-subtle everywhere. No heavy shadows, rely on 1px borders to separate layers."
+    },
+    "iconography": {
+      "library": "lucide-react",
+      "stroke_width": "1.5 for standard, 2.0 for micro-icons",
+      "size": "w-4 h-4 for inline, w-5 h-5 for sidebar, w-8 h-8 for empty states"
+    },
+    "motion": {
+      "curve": "cubic-bezier(0.16, 1, 0.3, 1)",
+      "duration": "0.3s for layout shifts, 0.15s for hover states",
+      "hover_state": "bg-white/5 transition-colors duration-150"
+    }
   },
-  "accessibility": {
-    "contrast": "Ensure pure white text has sufficient contrast against `#0A0A0A`. Hero thumbnails MUST have a bottom gradient overlay (`bg-gradient-to-t from-black/80 to-transparent`) so overlaid titles are readable.",
-    "testing": "All interactive elements MUST include `data-testid` attributes (e.g., `data-testid=\"download-filme-completo\"`, `data-testid=\"open-post-production-drawer\"`)."
+  "global_navigation_architecture": {
+    "sidebar_desktop": {
+      "width": "w-64",
+      "behavior": "Fixed left, border-r border-[#262626], h-screen flex flex-col justify-between",
+      "top_section": "Logo/Brand (h-14 flex items-center px-4). Main links: Projetos (Home), Personagens, Agentes, Configs. Use layout ID for active state indicator (Framer Motion).",
+      "bottom_section": "User Profile Dropdown (Avatar + Name) + Credits Counter (minimal text-xs text-secondary bar).",
+      "deep_context_behavior": "When entering a Project Wizard, the main sidebar HIDES completely to maximize workspace. Replaced by a Top Breadcrumb Nav."
+    },
+    "mobile_strategy": {
+      "deprecation": "BottomNav is fully DEPRECATED.",
+      "implementation": "Shadcn Sheet (Left) triggered by a Hamburger menu in a sticky top mobile header. Ensures consistent navigation hierarchy across devices."
+    }
   },
-  "instructions_to_main_agent": [
-    "1. Inject Google Fonts into the CSS file: `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=JetBrains+Mono:wght@400&family=Manrope:wght@300;400;500;600&display=swap');`",
-    "2. Update `tailwind.config.js` to map these fonts: `serif` -> Cormorant Garamond, `sans` -> Manrope, `mono` -> JetBrains Mono. Ensure gold accent `#C9A84C` is configured.",
-    "3. Restructure the `Resultado` (Step 5) component. Filter the `outputs` array. The item with `label === 'complete'` becomes the Hero Card. The remaining items become the 'Cenas Individuais' carousel.",
-    "4. Build the secondary products grid (Storyboard PDF, Livro Animado, Narrado, Dublado). Wire these to their respective routes (`/api/studio/projects/{id}/book/pdf`, `/book/{projectId}`).",
-    "5. Encapsulate the `PostProduction` component inside a Shadcn Sheet or Accordion to clean up the UI hierarchy.",
-    "6. Redesign the 5-step navigation bar at the top to look like a minimal timeline, replacing large pills with subtle nodes and a 1px connecting track."
-  ]
+  "pages": {
+    "projetos_home": {
+      "layout": "Unified single page replacing Dashboard + StudioPage.",
+      "header_stats": "Inline compact row. 'Projetos (124)' | 'Créditos: 9987/10K' | Search Input (Shadcn Input with Search icon, max-w-sm).",
+      "filters": "Pill-based Segmented Control (Todos, Vídeos, Livros, Híbridos). Active state: bg-white/10 text-white. Inactive: text-tertiary hover:text-secondary.",
+      "grid": "Bento-inspired or clean CSS Grid (grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6).",
+      "card_design": "Cardless aesthetic or subtle 1px border. Aspect-video thumbnail (rounded-lg overflow-hidden) + Title + 1 status line (e.g., 'Modo Híbrido • Há 2h'). Overflow menu (...).",
+      "novo_projeto_cta": "Do not hide as a card. Large prominent button in the top right of the page header. 'Novo Projeto' (action_primary_bg)."
+    },
+    "project_wizard_chrome": {
+      "wrapper": "Full screen, no sidebar. Top header (h-14 border-b border-[#262626] flex items-center justify-between px-6).",
+      "top_header_left": "Breadcrumb: 'Projetos / [Project Name]'. Back button returns to /projetos.",
+      "stepper": "Horizontal, center of top header. Minimalist: Step numbers (1, 2, 3) fading out for future steps. Active step is solid white. Use lucide-react 'Check' for completed.",
+      "action_bar": "Floating Glassmorphic Pill at the bottom center of the screen (fixed bottom-8). Contains 'Voltar' (secondary) + 'Próximo Passo' (primary).",
+      "sticky_progress": "If auto-running, replace action bar with a glowing progress pill (border-amber-500/50 + pulse animation)."
+    },
+    "directed_studio": {
+      "steps": "1. Script -> 2. Characters -> 3. Storyboard -> 4. Production -> 5. Review -> 6. Music -> 7. Export",
+      "hybrid_banner": "Subtle top banner (under main header) for output_mode='both': bg-amber-500/10 border-b border-amber-500/20 text-amber-500 text-sm px-4 py-2 flex items-center gap-2.",
+      "storyboard_grid": "Horizontal scrolling or dense masonry of Scene Cards. Each card: Text area for prompt + image placeholder/result + settings cog."
+    },
+    "book_studio": {
+      "steps": "1. Briefing -> 2. Outline -> 3. Arte -> 4. Revisão -> 5. Ilustrações -> 6. Capa -> 7. PDF",
+      "render_step_layout": "Split view or full width. Centerpiece: Large inline PDF viewer (h-[75vh] w-full max-w-4xl mx-auto rounded-xl border border-[#262626] overflow-hidden shadow-floating).",
+      "metadata_strip": "Compact strip below/above PDF. Flex row, gap-4, text-xs. e.g., '24 Páginas | 4.2MB | Preflight: OK (Green Dot)'.",
+      "actions": "Primary 'Baixar PDF' + Secondary 'Mais (Dropdown)' right-aligned in the metadata strip."
+    }
+  },
+  "states_and_interactions": {
+    "empty_states": "Minimalist. Center aligned. Lucide icon (w-12 h-12 text-[#262626]) + h3 title + body text. No massive illustrations.",
+    "loading_skeletons": "Pulse animation on rounded-lg rectangles. Bg color: bg-[#171717]. Match exact dimensions of final content (e.g., aspect-video for thumbnails).",
+    "pdf_loading": "Real progress bar (already implemented). Style: h-1 w-full bg-[#171717] -> inner div bg-white transition-all.",
+    "toasts": "Sonner styling overrides. Dark mode native. border border-[#262626] bg-[#0A0A0A] text-sm. No emojis, use Lucide icons (CheckCircle2 for success, AlertCircle for error)."
+  },
+  "technical_constraints_and_rules": {
+    "file_extensions": "All files are .js (React + Vite). DO NOT use .tsx or TypeScript syntax. Use JSDoc comments if type hinting is necessary.",
+    "data_testids": "CRITICAL: All interactive elements (buttons, links, inputs, cards) MUST preserve or include descriptive kebab-case data-testid attributes (e.g., data-testid='new-project-btn').",
+    "components": "Use existing Shadcn UI components from /app/frontend/src/components/ui/. Do not install new libraries. Customize their Tailwind classes to match this JSON's design language.",
+    "icons": "Strictly lucide-react. NO emojis anywhere in the UI.",
+    "framer_motion": "Use layoutId for shared element transitions (like the active state background in the sidebar or tabs). Use simple opacity/y-axis enter animations (initial={{opacity:0, y:10}} animate={{opacity:1, y:0}})."
+  },
+  "ascii_wireframes": {
+    "home_layout": "
+      +-------------------+----------------------------------------------------+
+      | O StudioX         | Projetos (24)   [ Search... ]      [ Novo Projeto ]|
+      |                   +----------------------------------------------------+
+      | [ ] Projetos      |  ( Todos )  [ Vídeos ]  [ Livros ]  [ Híbridos ]   |
+      | [ ] Personagens   |                                                    |
+      | [ ] Agentes       |  +-------------+  +-------------+  +-------------+ |
+      | [ ] Configs       |  | [Thumbnail] |  | [Thumbnail] |  | [Thumbnail] | |
+      |                   |  | Name        |  | Name        |  | Name        | |
+      |                   |  | Status   ...|  | Status   ...|  | Status   ...| |
+      | (Avatar) 9987 cr  |  +-------------+  +-------------+  +-------------+ |
+      +-------------------+----------------------------------------------------+
+    ",
+    "wizard_layout": "
+      +------------------------------------------------------------------------+
+      | < Back | Projetos / Book Name            (1) - 2 - 3 - 4 - 5 - 6 - 7   |
+      +------------------------------------------------------------------------+
+      |                                                                        |
+      |                                                                        |
+      |                        [ WIZARD CONTENT AREA ]                         |
+      |                        (Forms, Previews, etc)                          |
+      |                                                                        |
+      |                                                                        |
+      |                     +-------------------------------+                  |
+      |                     | (Voltar)       [ Próximo -> ] |                  |
+      |                     +-------------------------------+                  |
+      +------------------------------------------------------------------------+
+    "
+  }
 }

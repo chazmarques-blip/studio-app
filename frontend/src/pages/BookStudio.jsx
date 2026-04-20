@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
   BookOpen, Sparkles, Palette, Image as ImageIcon, Edit3, Eye, Download, Check,
-  ChevronRight, ChevronLeft, RefreshCw, Loader2, AlertCircle, FileCheck, Users, Wand2, Save, X,
+  ChevronRight, ChevronLeft, RefreshCw, Loader2, AlertCircle, FileCheck, Users, Wand2, Save, X, MoreHorizontal,
 } from 'lucide-react';
 import PdfInlineViewer from '../components/PdfInlineViewer';
 
@@ -390,6 +390,19 @@ export default function BookStudio() {
   // Chapter-flow: edit prose of a chapter — opens a modal with proper textarea
   // (window.prompt is broken for multi-paragraph text on most browsers)
   const [proseEditor, setProseEditor] = useState({ open: false, chapterIdx: null, prose: '', saving: false });
+
+  // Ref + state for the render-step "Mais ações" dropdown (consolidates 4 secondary actions
+  // into a single button, reducing UI clutter).
+  const [renderMoreOpen, setRenderMoreOpen] = useState(false);
+  const renderMoreRef = useRef(null);
+  useEffect(() => {
+    if (!renderMoreOpen) return;
+    const onClick = (e) => {
+      if (renderMoreRef.current && !renderMoreRef.current.contains(e.target)) setRenderMoreOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [renderMoreOpen]);
 
   const openProseEditor = (chapterIdx, currentProse) => {
     setProseEditor({ open: true, chapterIdx, prose: currentProse || '', saving: false });
@@ -1262,48 +1275,66 @@ export default function BookStudio() {
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
                 <button
                   onClick={downloadPdf}
                   disabled={downloadingPdf}
                   data-testid="btn-download-pdf"
                   className="px-4 py-2 bg-gradient-to-r from-amber-600 to-orange-600 text-white text-sm rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-amber-700 hover:to-orange-700 disabled:opacity-60">
                   {downloadingPdf ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
-                  {downloadingPdf ? 'Baixando...' : 'Baixar'}
+                  {downloadingPdf ? 'Baixando...' : 'Baixar PDF'}
                 </button>
-                <button
-                  onClick={openPdfInTab}
-                  disabled={downloadingPdf}
-                  data-testid="btn-open-pdf"
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-                  title="Abre o PDF em tela cheia numa nova aba"
-                >
-                  <Eye size={14} /> Nova aba
-                </button>
-                <button
-                  onClick={() => setStep('illustrate')}
-                  data-testid="btn-edit-illustrations"
-                  className="px-4 py-2 border rounded-lg hover:bg-purple-50 text-sm flex items-center justify-center gap-2 text-purple-700 border-purple-200"
-                  title="Voltar para editar as ilustrações do livro"
-                >
-                  <ImageIcon size={14} /> Editar ilustrações
-                </button>
-                <button
-                  onClick={() => setStep('cover')}
-                  data-testid="btn-edit-cover"
-                  className="px-4 py-2 border rounded-lg hover:bg-amber-50 text-sm flex items-center justify-center gap-2 text-amber-700 border-amber-200"
-                  title="Voltar para editar a capa"
-                >
-                  <Edit3 size={14} /> Editar capa
-                </button>
-                <button
-                  onClick={renderPDF}
-                  disabled={renderingPdf}
-                  data-testid="btn-rerender"
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm flex items-center justify-center gap-2 disabled:opacity-60">
-                  {renderingPdf ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
-                  {renderingPdf ? 'Renderizando...' : 'Renderizar de novo'}
-                </button>
+
+                {/* "Mais ações" — consolidates Nova aba, Editar ilustrações, Editar capa, Renderizar */}
+                <div className="relative" ref={renderMoreRef}>
+                  <button
+                    onClick={() => setRenderMoreOpen((o) => !o)}
+                    data-testid="btn-render-more"
+                    className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm flex items-center gap-1.5 text-gray-700"
+                    title="Mais ações"
+                  >
+                    <MoreHorizontal size={14} /> Mais
+                  </button>
+                  {renderMoreOpen && (
+                    <div
+                      data-testid="render-more-menu"
+                      className="absolute right-0 top-full mt-1 z-30 w-56 rounded-xl border border-gray-200 bg-white shadow-xl p-1"
+                    >
+                      <button
+                        onClick={() => { setRenderMoreOpen(false); openPdfInTab(); }}
+                        disabled={downloadingPdf}
+                        data-testid="btn-open-pdf"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        <Eye size={14} /> Abrir em nova aba
+                      </button>
+                      <button
+                        onClick={() => { setRenderMoreOpen(false); setStep('illustrate'); }}
+                        data-testid="btn-edit-illustrations"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-purple-700 rounded-lg hover:bg-purple-50"
+                      >
+                        <ImageIcon size={14} /> Editar ilustrações
+                      </button>
+                      <button
+                        onClick={() => { setRenderMoreOpen(false); setStep('cover'); }}
+                        data-testid="btn-edit-cover"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-amber-700 rounded-lg hover:bg-amber-50"
+                      >
+                        <Edit3 size={14} /> Editar capa
+                      </button>
+                      <div className="my-1 border-t border-gray-100" />
+                      <button
+                        onClick={() => { setRenderMoreOpen(false); renderPDF(); }}
+                        disabled={renderingPdf}
+                        data-testid="btn-rerender"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        {renderingPdf ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
+                        {renderingPdf ? 'Renderizando...' : 'Renderizar de novo'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
