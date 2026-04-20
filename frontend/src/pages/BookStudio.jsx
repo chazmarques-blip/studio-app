@@ -347,6 +347,41 @@ export default function BookStudio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Chapter-flow: change tier (full/half/spot) of an illustration
+  const changeIllusTier = async (pageNumber, newTier) => {
+    try {
+      await axios.patch(`${API}/api/studio/projects/${projectId}/book/illustration/${pageNumber}/tier`,
+        { size_tier: newTier }, authHeaders());
+      toast.success(`Tamanho ajustado para ${newTier}`);
+      await loadState(projectId, { inferStep: false });
+    } catch (e) { toast.error(`Falha: ${e.message}`); }
+  };
+
+  // Chapter-flow: delete an illustration entirely
+  const deleteIllustration = async (pageNumber) => {
+    if (!window.confirm(`Remover a ilustração da pg.${pageNumber} do livro? (A imagem fica no storage mas some do livro)`)) return;
+    try {
+      await axios.delete(`${API}/api/studio/projects/${projectId}/book/illustration/${pageNumber}`, authHeaders());
+      toast.success(`Ilustração pg.${pageNumber} removida`);
+      await loadState(projectId, { inferStep: false });
+    } catch (e) { toast.error(`Falha: ${e.message}`); }
+  };
+
+  // Chapter-flow: edit prose of a chapter (opens a textarea in a modal-like prompt)
+  const editChapterProse = async (chapterIdx, currentProse) => {
+    const newProse = window.prompt(
+      `Editar prosa do Capítulo ${chapterIdx}. Paragrafe com linhas em branco entre parágrafos.\n\n⚠️ Após salvar, o Diagramador Master precisa re-diagramar este capítulo.`,
+      currentProse || ''
+    );
+    if (newProse === null || newProse === currentProse) return;
+    try {
+      await axios.patch(`${API}/api/studio/projects/${projectId}/book/chapter/${chapterIdx}/prose`,
+        { prose: newProse }, authHeaders());
+      toast.success(`Capítulo ${chapterIdx} atualizado`);
+      await loadState(projectId, { inferStep: false });
+    } catch (e) { toast.error(`Falha: ${e.message}`); }
+  };
+
   // Download PDF via backend proxy (avoids ad-blocker blocking Supabase domain)
   const downloadPdf = async () => {
     if (!projectId) return;
@@ -811,6 +846,13 @@ export default function BookStudio() {
                               <details className="mt-2">
                                 <summary className="text-[11px] text-amber-700 cursor-pointer hover:underline">Ver prosa escrita</summary>
                                 <pre className="text-xs text-gray-700 whitespace-pre-wrap mt-2 p-3 bg-amber-50 rounded max-h-64 overflow-y-auto font-sans">{written.prose}</pre>
+                                <button
+                                  onClick={() => editChapterProse(ch.index, written.prose)}
+                                  data-testid={`btn-edit-prose-${ch.index}`}
+                                  className="mt-2 text-[11px] text-purple-700 hover:bg-purple-50 border border-purple-200 px-2 py-1 rounded flex items-center gap-1"
+                                >
+                                  <Edit3 size={10} /> Editar prosa manualmente
+                                </button>
                               </details>
                             )}
                           </div>
@@ -1060,6 +1102,25 @@ export default function BookStudio() {
                       <span className="text-[9px] text-gray-500">Cap {p.chapter} • {p.type}</span>
                     </div>
                     <p className="text-[11px] text-gray-700 line-clamp-2 mb-2">{p.description}</p>
+                    {/* Size tier selector */}
+                    <div className="flex gap-0.5 mb-1">
+                      {['full', 'half', 'spot'].map((tier) => (
+                        <button
+                          key={tier}
+                          onClick={() => changeIllusTier(p.page_number, tier)}
+                          disabled={isRegenPage}
+                          data-testid={`btn-tier-${tier}-${p.page_number}`}
+                          className={`flex-1 text-[9px] px-1 py-0.5 rounded transition ${
+                            p.type === tier
+                              ? 'bg-amber-600 text-white font-semibold'
+                              : 'bg-gray-100 text-gray-600 hover:bg-amber-100'
+                          } disabled:opacity-50`}
+                          title={`Usar tamanho ${tier}`}
+                        >
+                          {tier === 'full' ? '⬛' : tier === 'half' ? '◼' : '▫'} {tier}
+                        </button>
+                      ))}
+                    </div>
                     <div className="flex gap-1">
                       <button
                         onClick={() => regeneratePageIllus(p.page_number, false)}
@@ -1069,17 +1130,26 @@ export default function BookStudio() {
                         title="Regerar mantendo o plano original"
                       >
                         {isRegenPage ? <Loader2 className="animate-spin" size={10} /> : <RefreshCw size={10} />}
-                        {isRegenPage ? 'Regerando...' : 'Regerar'}
+                        {isRegenPage ? '...' : 'Regerar'}
                       </button>
                       <button
                         onClick={() => regeneratePageIllus(p.page_number, true)}
                         disabled={isRegenPage}
                         data-testid={`btn-regen-page-custom-${p.page_number}`}
                         className="flex-1 text-[10px] text-purple-700 hover:bg-purple-50 border border-purple-200 px-1.5 py-1 rounded flex items-center justify-center gap-1 disabled:opacity-60"
-                        title="Regerar com instruções customizadas (estilo, personagens)"
+                        title="Regerar com instruções customizadas"
                       >
                         {isRegenPage ? <Loader2 className="animate-spin" size={10} /> : <Wand2 size={10} />}
                         Custom
+                      </button>
+                      <button
+                        onClick={() => deleteIllustration(p.page_number)}
+                        disabled={isRegenPage}
+                        data-testid={`btn-delete-page-${p.page_number}`}
+                        className="text-[10px] text-red-600 hover:bg-red-50 border border-red-200 px-1.5 py-1 rounded flex items-center justify-center disabled:opacity-60"
+                        title="Remover ilustração do livro"
+                      >
+                        🗑
                       </button>
                     </div>
                   </div>

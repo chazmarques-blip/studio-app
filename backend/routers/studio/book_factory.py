@@ -1084,6 +1084,196 @@ Keep existing page_number ids where possible. For NEW items add new unique ids (
 
 
 
+# ══════════════════════════════════════════════════════════════════════
+# MANUAL EDITING — every stage editable, nothing locked
+# ══════════════════════════════════════════════════════════════════════
+
+class _ChapterProseEdit(BaseModel):
+    prose: str
+
+
+@router.patch("/projects/{project_id}/book/chapter/{chapter_idx}/prose")
+async def book_edit_chapter_prose(project_id: str, chapter_idx: int, req: _ChapterProseEdit, tenant=Depends(get_current_tenant)):
+    """Replace prose of a chapter. Invalidates stale layout for that chapter."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    chapters = bb.get("chapters") or {}
+    key = str(chapter_idx)
+    if key not in chapters:
+        raise HTTPException(status_code=404, detail=f"Chapter {chapter_idx} not found")
+    chapters[key]["prose"] = req.prose
+    chapters[key]["word_count"] = len((req.prose or "").split())
+    chapters[key]["edited_by_user_at"] = datetime.now(timezone.utc).isoformat()
+    lp = bb.get("layout_plan") or {}
+    (lp.get("chapters") or {}).pop(key, None)
+    bb["chapters"] = chapters
+    bb["layout_plan"] = lp
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _add_milestone(project, "book_chapter_edited", f"Capítulo {chapter_idx} editado manualmente")
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "saved", "chapter": chapter_idx, "word_count": chapters[key]["word_count"]}
+
+
+class _LayoutBlockEdit(BaseModel):
+    type: Optional[str] = None
+    index: Optional[int] = None
+    page_number: Optional[int] = None
+    size_tier: Optional[str] = None
+    caption: Optional[str] = None
+    text: Optional[str] = None
+    style: Optional[str] = None
+
+
+@router.patch("/projects/{project_id}/book/layout/{chapter_idx}/block/{block_idx}")
+async def book_edit_layout_block(project_id: str, chapter_idx: int, block_idx: int, req: _LayoutBlockEdit, tenant=Depends(get_current_tenant)):
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    ch_plan = (bb.get("layout_plan") or {}).get("chapters", {}).get(str(chapter_idx))
+    if not ch_plan:
+        raise HTTPException(status_code=404, detail=f"No layout for chapter {chapter_idx}")
+    blocks = ch_plan.get("blocks") or []
+    if not 0 <= block_idx < len(blocks):
+        raise HTTPException(status_code=404, detail=f"Block {block_idx} out of range")
+    patch = {k: v for k, v in req.model_dump().items() if v is not None}
+    blocks[block_idx].update(patch)
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "saved", "block": blocks[block_idx]}
+
+
+@router.delete("/projects/{project_id}/book/layout/{chapter_idx}/block/{block_idx}")
+async def book_delete_layout_block(project_id: str, chapter_idx: int, block_idx: int, tenant=Depends(get_current_tenant)):
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    ch_plan = (bb.get("layout_plan") or {}).get("chapters", {}).get(str(chapter_idx))
+    if not ch_plan:
+        raise HTTPException(status_code=404, detail=f"No layout for chapter {chapter_idx}")
+    blocks = ch_plan.get("blocks") or []
+    if not 0 <= block_idx < len(blocks):
+        raise HTTPException(status_code=404, detail=f"Block {block_idx} out of range")
+    if blocks[block_idx].get("type") == "paragraph":
+        raise HTTPException(status_code=400, detail="Não é possível remover parágrafos — edite a prosa do capítulo.")
+    removed = blocks.pop(block_idx)
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "deleted", "removed": removed, "remaining_blocks": len(blocks)}
+
+
+class _LayoutReorder(BaseModel):
+    order: list
+
+
+@router.patch("/projects/{project_id}/book/layout/{chapter_idx}/reorder")
+async def book_reorder_layout(project_id: str, chapter_idx: int, req: _LayoutReorder, tenant=Depends(get_current_tenant)):
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    ch_plan = (bb.get("layout_plan") or {}).get("chapters", {}).get(str(chapter_idx))
+    if not ch_plan:
+        raise HTTPException(status_code=404, detail=f"No layout for chapter {chapter_idx}")
+    blocks = ch_plan.get("blocks") or []
+    if sorted(req.order) != list(range(len(blocks))):
+        raise HTTPException(status_code=400, detail="Invalid reorder — must be permutation of current indices")
+    ch_plan["blocks"] = [blocks[i] for i in req.order]
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "saved"}
+
+
+class _InsertBlock(BaseModel):
+    after_index: int
+    block: dict
+
+
+@router.post("/projects/{project_id}/book/layout/{chapter_idx}/block")
+async def book_insert_layout_block(project_id: str, chapter_idx: int, req: _InsertBlock, tenant=Depends(get_current_tenant)):
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    ch_plan = (bb.get("layout_plan") or {}).get("chapters", {}).get(str(chapter_idx))
+    if not ch_plan:
+        raise HTTPException(status_code=404, detail=f"No layout for chapter {chapter_idx}")
+    blocks = ch_plan.get("blocks") or []
+    pos = max(0, min(len(blocks), req.after_index + 1))
+    blocks.insert(pos, req.block)
+    ch_plan["blocks"] = blocks
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "inserted", "position": pos}
+
+
+class _IllusTierEdit(BaseModel):
+    size_tier: str
+
+
+@router.patch("/projects/{project_id}/book/illustration/{page_number}/tier")
+async def book_edit_illustration_tier(project_id: str, page_number: int, req: _IllusTierEdit, tenant=Depends(get_current_tenant)):
+    if req.size_tier not in ("full", "half", "spot"):
+        raise HTTPException(status_code=400, detail="size_tier must be full | half | spot")
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    plan = bb.get("illustration_plan") or []
+    if not any(p.get("page_number") == page_number for p in plan):
+        raise HTTPException(status_code=404, detail=f"Illustration pg{page_number} not found")
+    for p in plan:
+        if p.get("page_number") == page_number:
+            p["type"] = req.size_tier
+    touched = 0
+    for ch_plan in (bb.get("layout_plan", {}).get("chapters") or {}).values():
+        for b in ch_plan.get("blocks", []):
+            if b.get("type") == "illustration" and b.get("page_number") == page_number:
+                b["size_tier"] = req.size_tier
+                touched += 1
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "saved", "tier": req.size_tier, "layout_blocks_updated": touched}
+
+
+@router.delete("/projects/{project_id}/book/illustration/{page_number}")
+async def book_delete_illustration(project_id: str, page_number: int, tenant=Depends(get_current_tenant)):
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    plan = bb.get("illustration_plan") or []
+    new_plan = [p for p in plan if p.get("page_number") != page_number]
+    if len(new_plan) == len(plan):
+        raise HTTPException(status_code=404, detail=f"Illustration pg{page_number} not found")
+    for ch_plan in (bb.get("layout_plan", {}).get("chapters") or {}).values():
+        ch_plan["blocks"] = [b for b in ch_plan.get("blocks", []) if not (b.get("type") == "illustration" and b.get("page_number") == page_number)]
+    bb["illustration_plan"] = new_plan
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _add_milestone(project, "book_illustration_deleted", f"Ilustração pg{page_number} removida")
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "deleted"}
+
+
+
+
 async def book_audit_illustrations(project_id: str, auto_regenerate: bool = False, tenant=Depends(get_current_tenant)):
     """Curador Visual: multimodal LLM audits each generated illustration and flags outliers
     (decorative borders/frames inside the image, wrong style, missing characters, extra characters,
