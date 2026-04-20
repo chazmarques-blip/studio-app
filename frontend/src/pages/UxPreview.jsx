@@ -17,7 +17,7 @@ const MOCK_PROJECTS = [
 ];
 
 const TYPE_META = {
-  video: { label: 'Vídeo', Icon: Video, dark: 'text-blue-400', light: 'text-blue-600' },
+  video: { label: 'Vídeo', Icon: Video, dark: 'text-violet-400', light: 'text-violet-600' },
   book: { label: 'Livro', Icon: BookOpen, dark: 'text-emerald-400', light: 'text-emerald-600' },
   hybrid: { label: 'Híbrido', Icon: Layers, dark: 'text-amber-400', light: 'text-amber-600' },
 };
@@ -30,11 +30,11 @@ function DarkMockup() {
   const items = filter === 'all' ? MOCK_PROJECTS : MOCK_PROJECTS.filter(p => p.type === filter);
   return (
     <div className="rounded-2xl overflow-hidden border border-[#262626] shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
-      <div className="flex h-[680px] bg-[#0A0A0A] text-[#F5F5F5]" style={{ fontFamily: "'Outfit', system-ui" }}>
+      <div className="flex h-[680px] bg-[#0A0614] text-[#F5F5F5]" style={{ fontFamily: "'Outfit', system-ui" }}>
         {/* SIDEBAR */}
-        <aside className="w-60 shrink-0 bg-[#121212] border-r border-[#262626] flex flex-col">
-          <div className="h-14 px-5 flex items-center gap-2 border-b border-[#262626]">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-xs font-black text-black">X</div>
+        <aside className="w-60 shrink-0 bg-[#110A1F] border-r border-[#2A2442] flex flex-col">
+          <div className="h-14 px-5 flex items-center gap-2 border-b border-[#2A2442]">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center text-xs font-black text-white shadow-[0_0_20px_rgba(139,92,246,0.4)]">X</div>
             <span className="text-[15px] font-semibold tracking-tight">StudioX</span>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -50,25 +50,25 @@ function DarkMockup() {
                   key={key}
                   onClick={() => setActive(key)}
                   className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition ${
-                    isActive ? 'bg-white/10 text-white' : 'text-[#A3A3A3] hover:bg-white/5 hover:text-white'
+                    isActive ? 'bg-violet-500/15 text-violet-200' : 'text-[#A3A3B2] hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-amber-500" />}
+                  {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-violet-500" />}
                   <Icon size={16} strokeWidth={1.75} />
                   <span className="flex-1 text-left">{label}</span>
                   {count != null && (
-                    <span className={`text-[10px] font-mono ${isActive ? 'text-white/70' : 'text-[#737373]'}`}>{count}</span>
+                    <span className={`text-[10px] font-mono ${isActive ? 'text-violet-300/80' : 'text-[#6B647F]'}`}>{count}</span>
                   )}
                 </button>
               );
             })}
           </nav>
-          <div className="px-3 pb-3 border-t border-[#262626] pt-3">
+          <div className="px-3 pb-3 border-t border-[#2A2442] pt-3">
             <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 cursor-pointer">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-[11px] font-bold text-black">TU</div>
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-orange-500 flex items-center justify-center text-[11px] font-bold text-white">TU</div>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-white truncate">Test User</p>
-                <p className="text-[10px] text-[#737373] flex items-center gap-1 font-mono"><Zap size={9} className="text-amber-500" />9,987 / 10k</p>
+                <p className="text-[10px] text-[#6B647F] flex items-center gap-1 font-mono"><Zap size={9} className="text-orange-400" />9,987 / 10k</p>
               </div>
             </div>
           </div>
@@ -76,20 +76,20 @@ function DarkMockup() {
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-14 px-8 flex items-center justify-between border-b border-[#262626]">
+          <header className="h-14 px-8 flex items-center justify-between border-b border-[#2A2442]">
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-semibold tracking-tight">Projetos</h1>
-              <span className="text-xs font-mono text-[#737373]">66</span>
+              <span className="text-xs font-mono text-[#6B647F]">66</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#737373]" />
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B647F]" />
                 <input
                   placeholder="Buscar..."
-                  className="w-64 h-9 pl-9 pr-3 rounded-lg bg-[#171717] border border-[#262626] text-xs text-white placeholder:text-[#737373] outline-none focus:border-[#525252] transition"
+                  className="w-64 h-9 pl-9 pr-3 rounded-lg bg-[#1A1430] border border-[#2A2442] text-xs text-white placeholder:text-[#6B647F] outline-none focus:border-violet-500/60 transition"
                 />
               </div>
-              <button className="h-9 px-4 rounded-lg bg-white text-black text-xs font-semibold hover:bg-white/90 transition flex items-center gap-1.5">
+              <button className="h-9 px-4 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold hover:brightness-110 transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(249,115,22,0.35)]">
                 <Plus size={14} strokeWidth={2.5} /> Novo Projeto
               </button>
             </div>
@@ -110,11 +110,11 @@ function DarkMockup() {
                     key={k}
                     onClick={() => setFilter(k)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition ${
-                      active ? 'bg-white/10 text-white' : 'text-[#A3A3A3] hover:text-white hover:bg-white/5'
+                      active ? 'bg-violet-500/15 text-violet-200 border border-violet-500/30' : 'text-[#A3A3B2] hover:text-white hover:bg-white/5 border border-transparent'
                     }`}
                   >
                     <I size={11} /> {l}
-                    <span className={`${active ? 'text-white/60' : 'text-[#525252]'} font-mono text-[10px]`}>{n}</span>
+                    <span className={`${active ? 'text-violet-300/70' : 'text-[#6B647F]'} font-mono text-[10px]`}>{n}</span>
                   </button>
                 );
               })}
@@ -126,37 +126,37 @@ function DarkMockup() {
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-3 rounded-xl border border-[#262626] bg-[#121212] hover:border-[#3a3a3a] transition cursor-pointer px-3 py-2"
+                    className="group flex items-center gap-3 rounded-xl border border-[#2A2442] bg-[#1A1430] hover:border-violet-500/40 transition cursor-pointer px-3 py-2"
                   >
-                    {/* Thumbnail — horizontal (16:9 video aspect) */}
-                    <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center relative">
+                    {/* Thumbnail — horizontal (16:9) */}
+                    <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-[#221A3F] to-[#0D0719] overflow-hidden flex items-center justify-center relative">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={22} strokeWidth={1.25} className="text-[#3a3a3a]" />
+                        <meta.Icon size={22} strokeWidth={1.25} className="text-[#4A3F6B]" />
                       )}
                     </div>
 
                     {/* Name + meta */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[14px] font-semibold text-white truncate leading-tight">{p.name}</h3>
-                      <div className="flex items-center gap-2.5 text-[11px] text-[#A3A3A3] mt-1 flex-wrap">
+                      <div className="flex items-center gap-2.5 text-[11px] text-[#A3A3B2] mt-1 flex-wrap">
                         <span className={`inline-flex items-center gap-1 font-medium ${meta.dark}`}>
                           <meta.Icon size={11} /> {meta.label}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <Users size={11} className="text-[#737373]" />
+                          <Users size={11} className="text-[#6B647F]" />
                           {p.characters} {p.characters === 1 ? 'personagem' : 'personagens'}
                         </span>
                         {p.pages && (
                           <span className="inline-flex items-center gap-1">
-                            <FileText size={11} className="text-[#737373]" />
+                            <FileText size={11} className="text-[#6B647F]" />
                             {p.pages} páginas
                           </span>
                         )}
                         {p.scenes && (
                           <span className="inline-flex items-center gap-1">
-                            <Clapperboard size={11} className="text-[#737373]" />
+                            <Clapperboard size={11} className="text-[#6B647F]" />
                             {p.scenes} cenas
                           </span>
                         )}
@@ -164,7 +164,7 @@ function DarkMockup() {
                           {p.done ? <Check size={11} /> : <Loader size={11} />}
                           {p.status}
                         </span>
-                        <span className="inline-flex items-center gap-1 text-[#737373]">
+                        <span className="inline-flex items-center gap-1 text-[#6B647F]">
                           <Clock size={11} />
                           {p.when}
                         </span>
@@ -174,19 +174,19 @@ function DarkMockup() {
                     {/* Status badge + actions (right side) */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
-                        p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-[#3a3a3a] to-[#262626] border border-[#525252]'
+                        p.done ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_16px_rgba(139,92,246,0.35)]' : 'bg-gradient-to-br from-[#2A2442] to-[#1A1430] border border-[#3A3258]'
                       }`} title={p.done ? 'Pronto' : 'Em progresso'}>
                         <meta.Icon size={14} className="text-white" />
                       </div>
 
-                      <button className="px-3 h-8 rounded-full bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 text-[11px] font-medium flex items-center gap-1.5 transition">
+                      <button className="px-3 h-8 rounded-full bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-[11px] font-medium flex items-center gap-1.5 transition border border-violet-500/20">
                         <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="px-3 h-8 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[11px] font-medium flex items-center gap-1.5 transition">
+                      <button className="px-3 h-8 rounded-full bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 text-[11px] font-medium flex items-center gap-1.5 transition border border-orange-500/20">
                         <BookOpen size={12} /> Carregar
                       </button>
                       <button className="p-1.5 rounded-md hover:bg-white/10 transition">
-                        <MoreHorizontal size={14} className="text-[#737373]" />
+                        <MoreHorizontal size={14} className="text-[#6B647F]" />
                       </button>
                     </div>
                   </div>
@@ -210,9 +210,9 @@ function LightMockup() {
     <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
       <div className="flex h-[680px] bg-white text-gray-900" style={{ fontFamily: "'Outfit', system-ui" }}>
         {/* SIDEBAR */}
-        <aside className="w-60 shrink-0 bg-[#FAFAFA] border-r border-gray-200 flex flex-col">
-          <div className="h-14 px-5 flex items-center gap-2 border-b border-gray-200">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-xs font-black text-white">X</div>
+        <aside className="w-60 shrink-0 bg-[#FAF8FD] border-r border-[#EEECF5] flex flex-col">
+          <div className="h-14 px-5 flex items-center gap-2 border-b border-[#EEECF5]">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center text-xs font-black text-white shadow-sm">X</div>
             <span className="text-[15px] font-semibold tracking-tight">StudioX</span>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-0.5">
@@ -228,25 +228,25 @@ function LightMockup() {
                   key={key}
                   onClick={() => setActive(key)}
                   className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition ${
-                    isActive ? 'bg-amber-50 text-amber-900' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    isActive ? 'bg-violet-50 text-violet-800' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   }`}
                 >
-                  {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-amber-500" />}
+                  {isActive && <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-violet-500" />}
                   <Icon size={16} strokeWidth={1.75} />
                   <span className="flex-1 text-left">{label}</span>
                   {count != null && (
-                    <span className={`text-[10px] font-mono ${isActive ? 'text-amber-700' : 'text-gray-400'}`}>{count}</span>
+                    <span className={`text-[10px] font-mono ${isActive ? 'text-violet-600' : 'text-gray-400'}`}>{count}</span>
                   )}
                 </button>
               );
             })}
           </nav>
-          <div className="px-3 pb-3 border-t border-gray-200 pt-3">
-            <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-[11px] font-bold text-white">TU</div>
+          <div className="px-3 pb-3 border-t border-[#EEECF5] pt-3">
+            <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-white cursor-pointer">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-500 to-orange-500 flex items-center justify-center text-[11px] font-bold text-white">TU</div>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-gray-900 truncate">Test User</p>
-                <p className="text-[10px] text-gray-500 flex items-center gap-1 font-mono"><Zap size={9} className="text-amber-500" />9,987 / 10k</p>
+                <p className="text-[10px] text-gray-500 flex items-center gap-1 font-mono"><Zap size={9} className="text-orange-500" />9,987 / 10k</p>
               </div>
             </div>
           </div>
@@ -254,7 +254,7 @@ function LightMockup() {
 
         {/* MAIN */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-14 px-8 flex items-center justify-between border-b border-gray-200 bg-white">
+          <header className="h-14 px-8 flex items-center justify-between border-b border-[#EEECF5] bg-white">
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-semibold tracking-tight">Projetos</h1>
               <span className="text-xs font-mono text-gray-400">66</span>
@@ -264,16 +264,16 @@ function LightMockup() {
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   placeholder="Buscar..."
-                  className="w-64 h-9 pl-9 pr-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-amber-400 transition"
+                  className="w-64 h-9 pl-9 pr-3 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-900 placeholder:text-gray-400 outline-none focus:border-violet-400 transition"
                 />
               </div>
-              <button className="h-9 px-4 rounded-lg bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800 transition flex items-center gap-1.5">
+              <button className="h-9 px-4 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white text-xs font-semibold hover:brightness-110 transition flex items-center gap-1.5 shadow-[0_0_20px_rgba(249,115,22,0.3)]">
                 <Plus size={14} strokeWidth={2.5} /> Novo Projeto
               </button>
             </div>
           </header>
 
-          <div className="flex-1 overflow-auto px-8 py-6 bg-[#FAFAFA]">
+          <div className="flex-1 overflow-auto px-8 py-6 bg-[#FAFAFC]">
             <div className="flex items-center gap-1 mb-6" style={{ fontFamily: "'Manrope', system-ui" }}>
               {[
                 { k: 'all', l: 'Todos', n: MOCK_PROJECTS.length, I: Folder },
@@ -287,11 +287,11 @@ function LightMockup() {
                     key={k}
                     onClick={() => setFilter(k)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition ${
-                      active ? 'bg-gray-900 text-white' : 'text-gray-600 hover:text-gray-900 hover:bg-white border border-transparent hover:border-gray-200'
+                      active ? 'bg-violet-100 text-violet-800 border border-violet-200' : 'text-gray-600 hover:text-gray-900 hover:bg-white border border-transparent hover:border-gray-200'
                     }`}
                   >
                     <I size={11} /> {l}
-                    <span className={`${active ? 'text-white/70' : 'text-gray-400'} font-mono text-[10px]`}>{n}</span>
+                    <span className={`${active ? 'text-violet-600' : 'text-gray-400'} font-mono text-[10px]`}>{n}</span>
                   </button>
                 );
               })}
@@ -303,14 +303,14 @@ function LightMockup() {
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer px-3 py-2"
+                    className="group flex items-center gap-3 rounded-xl border border-[#EEECF5] bg-white hover:border-violet-200 hover:shadow-sm transition cursor-pointer px-3 py-2"
                   >
                     {/* Thumbnail — horizontal (16:9) */}
-                    <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center relative">
+                    <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-violet-50 to-gray-100 overflow-hidden flex items-center justify-center relative">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={22} strokeWidth={1.25} className="text-gray-300" />
+                        <meta.Icon size={22} strokeWidth={1.25} className="text-violet-200" />
                       )}
                     </div>
 
@@ -351,15 +351,15 @@ function LightMockup() {
                     {/* Status badge + actions */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
-                        p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-gray-200 to-gray-300'
+                        p.done ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_12px_rgba(139,92,246,0.25)]' : 'bg-gradient-to-br from-gray-200 to-gray-300'
                       }`} title={p.done ? 'Pronto' : 'Em progresso'}>
                         <meta.Icon size={14} className="text-white" />
                       </div>
 
-                      <button className="px-3 h-8 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-orange-100">
+                      <button className="px-3 h-8 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-violet-100">
                         <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="px-3 h-8 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-emerald-100">
+                      <button className="px-3 h-8 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-orange-100">
                         <BookOpen size={12} /> Carregar
                       </button>
                       <button className="p-1.5 rounded-md hover:bg-gray-100 transition">
