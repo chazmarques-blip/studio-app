@@ -643,13 +643,17 @@ CHARACTERS VISIBLE IN SCENE: {', '.join(chars_in_page) if chars_in_page else 'sc
 CHARACTER REFERENCES (match the attached reference images EXACTLY — same species, face, fur pattern, eye color, proportions, clothing):
 {chr(10).join(char_descriptions) if char_descriptions else '(no character refs — use scene only)'}
 
-HARD RULES:
-- NO TEXT, NO LETTERS, NO SIGNS in the illustration.
-- DO NOT add characters that are not in the scene list above. NO random extra dogs/people.
-- DO NOT switch art style (no flat-vector, no pixel-art, no 2D cartoon if the style is 3D Pixar, etc.).
-- Characters must match reference images pixel-level: same breed, same fur color/pattern, same eyes.
-- Leave 3mm bleed margin; keep main subject inside safe area.
-- Composition: cinematic, reader-friendly, high contrast, warm lighting.
+HARD RULES (any violation = reject):
+- ⚠️ ABSOLUTELY NO TEXT, LETTERS, NUMBERS, WORDS, NAMES, SIGNS, OR WATERMARKS anywhere in the illustration. The reference avatar images MAY SHOW "ASH" or "SNOW" written on dog collars or name tags — YOU MUST IGNORE THAT TEXT and render the dogs WITHOUT any name tag, without any readable text. This is the most important rule.
+- ⚠️ NO DECORATIVE BORDERS, FRAMES, MATTES, or OUTLINES around the image. The reference avatar images may have borders — YOU MUST IGNORE THAT and render edge-to-edge scene content. NO blue/gold/white outlines, no rounded-corner vignettes, no double borders, no colored mattes. The book's layout engine adds a subtle frame — do NOT draw your own.
+- NO FULL WHITE OR SOLID-COLOR BACKGROUND PADS — the scene fills the entire canvas edge-to-edge with rich environmental context.
+- DO NOT add characters that are not in the scene list above. NO random extra dogs/people/animals.
+- DO NOT switch art style (no flat-vector, no pixel-art, no 2D cartoon if the style is 3D Pixar, etc.). Match the previously-generated pages of THIS book.
+- Characters must match reference images pixel-level for their BODY (same breed, same fur color/pattern, same eyes, same proportions) — but WITHOUT any name-tags or text that appear in the refs.
+- Square 1:1 aspect (1024×1024) with the main subject centered and well-lit.
+- Composition: cinematic, reader-friendly, high contrast, warm lighting — the image should feel like a single frame from an animated movie, not a framed sticker.
+
+REMINDER: NO TEXT, NO FRAMES. Generate pure scene content only.
 """
 
 
@@ -880,7 +884,142 @@ async def book_proofread(project_id: str, tenant=Depends(get_current_tenant)):
 #   breaks, pacing issues, too many figures in a row, orphan paragraphs.
 # ══════════════════════════════════════════════════════════════════════
 
-@router.post("/projects/{project_id}/book/design-layout")
+@router.post("/projects/{project_id}/book/audit-illustrations")
+async def book_audit_illustrations(project_id: str, auto_regenerate: bool = False, tenant=Depends(get_current_tenant)):
+    """Curador Visual: multimodal LLM audits each generated illustration and flags outliers
+    (decorative borders/frames inside the image, wrong style, missing characters, extra characters,
+    text/watermarks). If `auto_regenerate=true`, regenerates each flagged image automatically.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    bb = (project.get("project_bible") or {}).get("book_bible") or {}
+    plan = bb.get("illustration_plan") or []
+    style_rules = bb.get("style_rules", "")
+    visual_track = bb.get("visual_track", "storybook")
+
+    generated = [p for p in plan if p.get("illustration_url")]
+    if not generated:
+        raise HTTPException(status_code=400, detail="No illustrations generated yet")
+
+    import litellm
+
+    async def _audit_one(item: dict):
+        url = item.get("illustration_url")
+        expected_chars = item.get("characters_in_page") or []
+        expected_desc = item.get("description", "")
+
+        try:
+            resp = await litellm.acompletion(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": f"""You are the Curador Visual (Visual Curator) auditing ONE illustration for HARD violations only. Trust that the overall style is correct — focus ONLY on objective technical flaws.
+
+SCENE: {expected_desc[:300]}
+EXPECTED MAIN CHARACTERS: {', '.join(expected_chars) if expected_chars else '(open — do not flag missing characters)'}
+
+AUDIT FOR THESE 4 HARD VIOLATIONS ONLY:
+
+1. decorative_border (MAJOR): Is there a LITERAL PICTURE FRAME surrounding the artwork? Look for an obvious rectangular outline/border hugging the edges of the image, separating the artwork from the page like a matted/framed print. A fence, wall, or environmental edge INSIDE the scene does NOT count. Flag ONLY if there's an unmistakable picture-frame effect.
+
+2. text_present (MODERATE): Is there any readable text, letters, numbers, typography, signs, or watermarks visible that isn't part of the scene's natural environment? (A book in the scene with no visible words = fine. A name tag with "ASH" written = flag.)
+
+3. extra_characters (MODERATE): Are there obvious unexpected extra MAIN characters — like 2+ extra dogs when only Ash+Snow are expected, or unknown people in the foreground? (Ambient background characters are fine.)
+
+4. broken_image (MAJOR): Is the image visibly broken — severe letterboxing (huge solid color bars on sides), image half-loaded, watermark overlay covering majority, or main subject badly cut off?
+
+DO NOT AUDIT FOR:
+- Art style (3D vs 2D vs whatever — trust this is correct)
+- Missing characters (unless expected list is non-empty AND character is clearly absent)
+- Color palette
+- Composition quality
+
+Be EXTREMELY CONSERVATIVE. Only flag if 100% certain. When in doubt, return ok=true.
+
+Return ONLY valid JSON:
+{{
+  "ok": true | false,
+  "issues": ["decorative_border" | "text_present" | "extra_characters" | "broken_image"],
+  "severity": "moderate" | "major",
+  "notes": "one sentence"
+}}
+"""},
+                        {"type": "image_url", "image_url": {"url": url}},
+                    ]
+                }],
+                max_tokens=300,
+                timeout=60,
+                api_key=os.environ.get("OPENAI_API_KEY"),
+            )
+            raw = (resp.choices[0].message.content or "").strip()
+            if raw.startswith("```"):
+                raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+            verdict = json.loads(raw)
+            return item.get("page_number"), verdict
+        except Exception as e:
+            logger.warning(f"BookFactory Curador audit pg{item.get('page_number')} failed: {e}")
+            return item.get("page_number"), {"ok": True, "issues": [], "severity": "minor", "notes": f"audit skipped: {str(e)[:80]}"}
+
+    verdicts = await asyncio.gather(*[_audit_one(it) for it in generated], return_exceptions=False)
+    audit = {str(pn): v for pn, v in verdicts}
+
+    # Classify flags:
+    #   - HARD auto-regen: decorative_border, broken_image, text_present
+    #   - SOFT needs-review: extra_characters (often false positive when Brenda-style valid char
+    #     appears but wasn't listed in characters_in_page)
+    HARD_ISSUES = {"decorative_border", "broken_image", "text_present"}
+    hard_flagged = []
+    soft_flagged = []
+    for pn, v in verdicts:
+        if v.get("ok", True):
+            continue
+        issues = set(v.get("issues", []))
+        if issues & HARD_ISSUES:
+            hard_flagged.append(pn)
+        elif issues:
+            soft_flagged.append(pn)
+
+    bb["visual_audit"] = audit
+    bb["visual_audit_at"] = datetime.now(timezone.utc).isoformat()
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = bb
+    project["project_bible"] = pb
+    _add_milestone(project, "book_visual_audit", f"Curador Visual: {len(generated)} imgs auditadas — {len(hard_flagged)} hard, {len(soft_flagged)} soft")
+    _save_project(tenant["id"], settings, projects)
+
+    # Auto-regenerate only HARD violations (borders, broken, text — unambiguous problems)
+    # Parallel via asyncio.gather (batch of 6 to avoid Gemini rate limits)
+    regenerated = []
+    if auto_regenerate and hard_flagged:
+        async def _regen_one(pn: int):
+            try:
+                await book_generate_illustration(project_id, IllustrationGenerateRequest(page_number=pn), tenant)
+                return pn
+            except Exception as e:
+                logger.warning(f"BookFactory auto-regen pg{pn} failed: {e}")
+                return None
+
+        # Batch of 6 concurrent
+        BATCH = 6
+        for i in range(0, len(hard_flagged), BATCH):
+            chunk = hard_flagged[i:i + BATCH]
+            results = await asyncio.gather(*[_regen_one(pn) for pn in chunk], return_exceptions=False)
+            regenerated.extend([r for r in results if r is not None])
+
+    return {
+        "status": "audited",
+        "total_audited": len(generated),
+        "flagged": hard_flagged + soft_flagged,
+        "hard_flagged": hard_flagged,
+        "soft_flagged": soft_flagged,
+        "flagged_details": [{"page_number": pn, **audit[str(pn)]} for pn in hard_flagged + soft_flagged],
+        "auto_regenerated": regenerated,
+    }
+
+
+
 async def book_design_layout(project_id: str, tenant=Depends(get_current_tenant)):
     """Runs Diagramador Master (LLM) to produce a detailed layout plan per chapter.
     Result saved to `book_bible.layout_plan`. Used by render-pdf.
@@ -1739,6 +1878,16 @@ async def _run_book_pipeline_background(tenant: dict, project_id: str):
                         _log(f"Ilustração p.{pn} gerada", f"illustrate_p{pn}")
                     except Exception as e:
                         _log(f"Ilustração p.{pn} falhou: {str(e)[:150]}", f"illustrate_p{pn}_error")
+
+            # Curador Visual: multimodal audit + auto-regenerate outliers
+            _log("Curador Visual auditando imagens", "audit_illustrations")
+            try:
+                audit_res = await book_audit_illustrations(project_id, auto_regenerate=True, tenant=tenant)
+                flagged_count = len(audit_res.get("flagged", []) or [])
+                regen_count = len(audit_res.get("auto_regenerated", []) or [])
+                _log(f"Curador: {flagged_count} flagged, {regen_count} regenerated", "audit_done")
+            except Exception as e:
+                _log(f"Curador falhou (seguindo): {str(e)[:150]}", "audit_error")
 
             # Cover
             _log("Gerando capa", "cover")
