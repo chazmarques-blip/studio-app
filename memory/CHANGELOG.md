@@ -1,6 +1,43 @@
 # StudioX Changelog
 
-## 2026-04-19 (Session 5 — Bugfix: Pipeline + Cover + UI chapter-flow + Download proxy + Regerar ilustrações)
+## 2026-04-20 (Session 5 — Diagramador Master + Revisor Tipográfico LLM)
+
+### Feature: 2 agentes LLM profissionais de diagramação
+
+**Problema:** A diagramação era heurística (distribuição proporcional simples) sem consciência do conteúdo. Ilustrações ficavam em posições técnicas mas não semanticamente conectadas ao texto.
+
+**Fix — Pipeline agora tem 2 novos agentes:**
+
+1. **Diagramador Master** (`POST /book/design-layout`):
+   - Persona combinada: Robert Bringhurst (tipografia) + Massimo Vignelli (grid) + Chip Kidd (narrativa) + Irma Boom (livro-objeto).
+   - Lê cada capítulo com parágrafos numerados + descrições das ilustrações disponíveis.
+   - Retorna sequência de `blocks` contextualizados: `chapter_opener`, `paragraph(index)`, `illustration(page_number, caption)`, `pull_quote(text)`, `section_break`.
+   - **Posiciona cada imagem IMEDIATAMENTE APÓS o parágrafo que a descreve** (match semântico).
+   - Adiciona opcionalmente pull quotes (uma linha literária destacada) e section breaks (descanso ornamental entre atos).
+
+2. **Revisor Tipográfico** (`POST /book/review-layout`):
+   - Persona: Senior QA editor Penguin Random House (25 anos).
+   - Audita o plano do Diagramador contra 6 critérios: image context match, pacing, opener, pull quotes verbatim, completeness, narrative order.
+   - Retorna `critique` (lista de issues encontradas e corrigidas) + `blocks` corrigidos.
+   - Valida que toda ilustração fica perto do parágrafo certo, pacing ≤ 1 imagem a cada 3 parágrafos, etc.
+
+**Ambos paralelos:** `asyncio.gather` processa todos os capítulos simultaneamente (~15s total vs ~60s sequencial).
+
+**Template atualizado** (`book_base.html.j2`):
+- Suporte a `chapter-opener` com estilos `drop_cap` (capitular 2.4×) e `cinematic` (epígrafe com ornamento ✦).
+- `.pull-quote` com borda superior/inferior dourada, itálico 1.35× font-size.
+- `.section-break` com 3 estrelas ✦ ✦ ✦ douradas.
+- `<figcaption>` nas imagens renderizando a legenda curta que o Diagramador propôs.
+
+**Pipeline integrada:** Auto-Run agora executa: outline → capítulos → plano de ilustrações → ilustrações → capa → **Diagramador Master** → **Revisor Tipográfico** → render-pdf → preflight.
+
+**✅ Validado no livro Ash:**
+- 8 capítulos diagramados + revisados.
+- Revisor encontrou e corrigiu issues reais (ex: "Illustration id=6 moved to after paragraph 1 — represents Ash dancing, described immediately after that paragraph").
+- Página 5 renderizada: ilustração grande "Ash chegando à casa da Brenda" COM legenda "Ash chega à casa da Brenda, animado e curioso." — perfeitamente alinhada ao texto.
+- 44 páginas (vs 64 antes), layout denso e profissional.
+
+
 
 ### Fix 5: Regerar ilustração individual no fluxo chapter + prompt reforçado
 **Problema do usuário:** Algumas ilustrações saíam fora do padrão Pixar 3D (pg.6 cartoon bichinho, pg.10 vector flat, pg.13 múltiplos cachorros random). Não havia botão para regenerar individualmente no fluxo chapter.

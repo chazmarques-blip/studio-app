@@ -146,6 +146,54 @@
     margin-top: 2mm;
     text-align: center;
   }
+
+  /* Chapter opener styles (set by Diagramador Master) */
+  .chapter-opener.drop_cap + p::first-letter {
+    font-size: {{ (layout.font_size_pt * 2.4) | round(0) }}pt;
+    font-weight: 700;
+    line-height: 1;
+    padding-right: 2pt;
+    color: #333;
+  }
+  .chapter-opener.cinematic {
+    text-align: center;
+    font-family: {{ layout.font_family }};
+    font-size: {{ (layout.font_size_pt * 1.4) | round(1) }}pt;
+    font-style: italic;
+    color: #666;
+    margin: 4mm auto 8mm auto;
+    max-width: 80%;
+  }
+  .chapter-opener.cinematic::before { content: "✦"; display: block; font-size: 16pt; color: #9E7D4A; margin-bottom: 4mm; }
+  .chapter-opener .epigraph { font-style: italic; color: #666; text-align: center; margin: 2mm auto 6mm auto; max-width: 70%; }
+
+  /* Pull quote (set by Diagramador Master) */
+  .pull-quote {
+    page-break-inside: avoid;
+    font-family: {{ layout.font_family }};
+    font-size: {{ (layout.font_size_pt * 1.35) | round(1) }}pt;
+    line-height: 1.35;
+    font-style: italic;
+    color: #333;
+    text-align: center;
+    border-top: 0.5pt solid #c9a96e;
+    border-bottom: 0.5pt solid #c9a96e;
+    padding: 6mm 8mm;
+    margin: 8mm 10mm;
+  }
+  .pull-quote .attribution { display: block; font-size: {{ layout.font_size_pt }}pt; font-style: normal; color: #888; margin-top: 3mm; letter-spacing: 1px; }
+
+  /* Section break (soft rest between acts) */
+  .section-break {
+    page-break-inside: avoid;
+    text-align: center;
+    font-size: 14pt;
+    color: #c9a96e;
+    letter-spacing: 1em;
+    margin: 8mm auto;
+    padding-right: -1em;
+  }
+  .section-break::before { content: "✦ ✦ ✦"; }
 </style>
 </head>
 <body>
@@ -182,8 +230,14 @@
   {%- set blocks = ch._blocks or [] -%}
   {% if blocks %}
     {% for b in blocks %}
-      {% if b.type == 'illus' %}
+      {% if b.type == 'chapter_opener' %}
+        <div class="chapter-opener {{ b.style or 'drop_cap' }}">{% if b.epigraph %}<div class="epigraph">"{{ b.epigraph }}"</div>{% endif %}</div>
+      {% elif b.type == 'illus' %}
         {{ render_illustration(b.data) }}
+      {% elif b.type == 'pullquote' %}
+        <blockquote class="pull-quote">"{{ b.text }}"{% if b.attribution %}<span class="attribution">— {{ b.attribution }}</span>{% endif %}</blockquote>
+      {% elif b.type == 'section_break' %}
+        <div class="section-break"></div>
       {% else %}
         <p>{{ b.text | replace('\n', ' ') }}</p>
       {% endif %}

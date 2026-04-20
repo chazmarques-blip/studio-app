@@ -21,6 +21,7 @@ Adds:
 from ._shared import *
 from fastapi import BackgroundTasks
 import json
+import asyncio
 import io
 import re as _re
 import tempfile as _tempfile
@@ -819,9 +820,268 @@ async def book_proofread(project_id: str, tenant=Depends(get_current_tenant)):
     return {"status": "proofread", "chapters_reviewed": len(corrected)}
 
 
+# ══════════════════════════════════════════════════════════════════════
+# DIAGRAMADOR MASTER AGENT + LAYOUT REVIEWER AGENT
+# Two LLM agents that collaborate to produce a world-class book layout plan.
+#
+# AGENT 1 "Diagramador Master":
+#   Personas combined: Massimo Vignelli (grid master), Robert Bringhurst (typography),
+#   Chip Kidd (storytelling through design), Irma Boom (book-as-object).
+#   Reads: brief + full prose + illustration_plan + character ensemble.
+#   Writes: per-chapter "blocks" sequence with explicit anchors at PARAGRAPH level
+#   (not just percentage) — plus chapter openers, pull quotes, section breaks.
+#
+# AGENT 2 "Revisor Tipográfico":
+#   Persona: senior pre-press QA editor at Penguin Random House.
+#   Reads: Diagramador's plan + prose + illustration_plan + book metadata.
+#   Writes: critique + adjusted plan. Detects: image out of context, awkward
+#   breaks, pacing issues, too many figures in a row, orphan paragraphs.
+# ══════════════════════════════════════════════════════════════════════
+
+@router.post("/projects/{project_id}/book/design-layout")
+async def book_design_layout(project_id: str, tenant=Depends(get_current_tenant)):
+    """Runs Diagramador Master (LLM) to produce a detailed layout plan per chapter.
+    Result saved to `book_bible.layout_plan`. Used by render-pdf.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    brief = book_bible.get("brief") or {}
+    chapters_dict = book_bible.get("chapters") or {}
+    outline = book_bible.get("outline") or {}
+    plan = book_bible.get("illustration_plan") or []
+    format_preset = brief.get("format_preset", "infantil_ilustrado")
+
+    if not chapters_dict:
+        raise HTTPException(status_code=400, detail="No chapters to diagram yet")
+
+    # Group illustrations per chapter for context
+    illus_by_chapter = {}
+    for it in plan:
+        illus_by_chapter.setdefault(it.get("chapter"), []).append(it)
+
+    lang = {"pt": "Portuguese", "en": "English", "es": "Spanish"}.get(brief.get("language", "pt"), "Portuguese")
+    layout_plan_out = {"format_preset": format_preset, "chapters": {}}
+
+    # Design each chapter in PARALLEL (asyncio.gather) — otherwise 8 chapters × 6-10s each = timeout.
+    async def _design_one(ch_idx_str: str):
+        ch = chapters_dict[ch_idx_str]
+        ch_idx = int(ch_idx_str)
+        prose = (ch.get("prose") or "").strip()
+        if prose.startswith("##"):
+            prose = "\n".join(prose.split("\n")[1:]).strip()
+        paragraphs = [p.strip() for p in prose.split("\n\n") if p.strip()]
+        if not paragraphs:
+            return ch_idx_str, None
+        numbered_paras = "\n\n".join([f"[{i}] {p}" for i, p in enumerate(paragraphs)])
+
+        ch_illus = illus_by_chapter.get(ch_idx, [])
+        illus_block = "\n".join([
+            f"- id={it.get('page_number')} type={it.get('type')} chars={','.join(it.get('characters_in_page', []) or [])}: {it.get('description', '')[:200]}"
+            for it in ch_illus if it.get("illustration_url")
+        ]) or "(no illustrations for this chapter)"
+
+        prompt = f"""You are the Diagramador Master — combining the typographic discipline of Robert Bringhurst, the grid rigor of Massimo Vignelli, the narrative-sensitive placement of Chip Kidd, and the book-as-object sensibility of Irma Boom.
+
+Your job: design the page layout for Chapter {ch_idx} of a professional book.
+
+BOOK FORMAT: {format_preset} — trim {brief.get('trim_size', '6x9')} — language: {lang}
+CHAPTER: "{ch.get('title')}"
+
+PARAGRAPHS (use the numeric index to refer to each one):
+{numbered_paras}
+
+AVAILABLE ILLUSTRATIONS FOR THIS CHAPTER:
+{illus_block}
+
+DESIGN RULES:
+1. Every illustration must be placed ADJACENT to the paragraph whose content it depicts. Read each illustration's description and find the paragraph that describes that moment. Put the illustration IMMEDIATELY AFTER that paragraph.
+2. Do NOT stack illustrations at the chapter opening. Distribute them naturally where they belong narratively.
+3. Use "chapter_opener" as the first block with style="drop_cap" (elegant) or "cinematic" (dramatic) — pick based on the chapter's mood.
+4. Optionally add "pull_quote" blocks (max 1 per chapter) for a line with standalone literary power.
+5. Optionally add "section_break" blocks between acts of the chapter (subtle ornamental rest).
+6. Every paragraph MUST appear exactly once as a "paragraph" block.
+7. The order of blocks MUST tell the chapter in sequence.
+
+Return ONLY valid JSON (no prose, no markdown fences):
+{{
+  "chapter_index": {ch_idx},
+  "opener_mood": "warm" | "dramatic" | "quiet" | "playful",
+  "blocks": [
+    {{"type": "chapter_opener", "style": "drop_cap", "epigraph": ""}},
+    {{"type": "paragraph", "index": 0}},
+    {{"type": "paragraph", "index": 1}},
+    {{"type": "illustration", "page_number": 1, "caption": "optional short caption"}},
+    {{"type": "paragraph", "index": 2}},
+    {{"type": "pull_quote", "text": "exact short line copied from prose", "attribution": ""}},
+    {{"type": "section_break"}},
+    {{"type": "paragraph", "index": 3}}
+  ]
+}}
+
+IMPORTANT:
+- "page_number" in illustration blocks MUST match an `id` from the AVAILABLE ILLUSTRATIONS list.
+- "index" in paragraph blocks MUST match the [N] indices shown above.
+- Do not invent paragraphs. Only reference existing [N] indices.
+"""
+        try:
+            raw = (await _call_claude_async(
+                "You are a world-class book designer. Output strictly valid JSON.",
+                prompt,
+                max_tokens=4000,
+            )).strip()
+            if raw.startswith("```"):
+                raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+            ch_plan = json.loads(raw)
+        except Exception as e:
+            logger.error(f"BookFactory Diagramador chapter {ch_idx} failed: {e}")
+            return ch_idx_str, None
+
+        # Ensure every paragraph index appears
+        para_indices_used = [b.get("index") for b in (ch_plan.get("blocks") or []) if b.get("type") == "paragraph"]
+        missing = [i for i in range(len(paragraphs)) if i not in para_indices_used]
+        for i in missing:
+            ch_plan.setdefault("blocks", []).append({"type": "paragraph", "index": i})
+        return ch_idx_str, ch_plan
+
+    tasks = [_design_one(k) for k in sorted(chapters_dict.keys(), key=lambda x: int(x))]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    for r in results:
+        if isinstance(r, Exception) or r is None:
+            continue
+        k, ch_plan = r
+        if ch_plan:
+            layout_plan_out["chapters"][k] = ch_plan
+
+    book_bible["layout_plan"] = layout_plan_out
+    book_bible["layout_plan_reviewed"] = False
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _add_milestone(project, "book_layout_designed", f"{len(layout_plan_out['chapters'])} capítulos diagramados pelo Diagramador Master")
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "designed", "chapters": len(layout_plan_out["chapters"])}
+
+
+@router.post("/projects/{project_id}/book/review-layout")
+async def book_review_layout(project_id: str, tenant=Depends(get_current_tenant)):
+    """Revisor Tipográfico LLM audits the layout_plan and applies corrections."""
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    book_bible = (project.get("project_bible") or {}).get("book_bible") or {}
+    layout_plan = book_bible.get("layout_plan") or {}
+    chapters_dict = book_bible.get("chapters") or {}
+    plan = book_bible.get("illustration_plan") or []
+    brief = book_bible.get("brief") or {}
+
+    if not layout_plan.get("chapters"):
+        raise HTTPException(status_code=400, detail="No layout plan found. Run /book/design-layout first.")
+
+    # Group illustrations per chapter
+    illus_by_chapter = {}
+    for it in plan:
+        illus_by_chapter.setdefault(it.get("chapter"), []).append(it)
+
+    reviewed = {}
+    critiques_all = []
+    lang = {"pt": "Portuguese", "en": "English"}.get(brief.get("language", "pt"), "Portuguese")
+
+    async def _review_one(ch_idx_str: str, ch_plan: dict):
+        ch_idx = int(ch_idx_str)
+        ch = chapters_dict.get(ch_idx_str) or chapters_dict.get(str(ch_idx))
+        if not ch:
+            return ch_idx_str, ch_plan, []
+        prose = (ch.get("prose") or "").strip()
+        if prose.startswith("##"):
+            prose = "\n".join(prose.split("\n")[1:]).strip()
+        paragraphs = [p.strip() for p in prose.split("\n\n") if p.strip()]
+        numbered_paras = "\n\n".join([f"[{i}] {p[:260]}{'...' if len(p) > 260 else ''}" for i, p in enumerate(paragraphs)])
+
+        ch_illus = illus_by_chapter.get(ch_idx, [])
+        illus_ref = "\n".join([
+            f"- id={it.get('page_number')}: {it.get('description', '')[:180]}"
+            for it in ch_illus if it.get("illustration_url")
+        ]) or "(none)"
+
+        prompt = f"""You are the Senior Typographic Reviewer, 25 years of experience at Penguin Random House pre-press. Your job is to audit the layout plan proposed by the Diagramador and fix any issues BEFORE the reader sees the book.
+
+CHAPTER: {ch_idx} "{ch.get('title')}"
+
+PARAGRAPH CONTENT (abbreviated):
+{numbered_paras}
+
+AVAILABLE ILLUSTRATIONS:
+{illus_ref}
+
+PROPOSED LAYOUT PLAN (from Diagramador):
+{json.dumps(ch_plan, ensure_ascii=False, indent=2)}
+
+AUDIT CHECKLIST:
+1. IMAGE CONTEXT MATCH — Is each illustration adjacent to the paragraph that actually describes it? If illustration id=X depicts "Ash meeting Snow" but it's placed near a paragraph about "Brenda's breakfast", MOVE it.
+2. PACING — No more than 1 illustration block every 3 paragraph blocks (avoid visual bloat).
+3. CHAPTER OPENER — First block should be a "chapter_opener". Drop_cap is default; "cinematic" only for dramatic/climactic chapters.
+4. PULL QUOTES — If present, the text must appear VERBATIM in one of the paragraphs above. Otherwise remove.
+5. COMPLETENESS — Every paragraph [N] must appear exactly once.
+6. NARRATIVE ORDER — Paragraphs must appear in natural index order (0,1,2,3...). Section breaks may split but indices stay ordered.
+
+Return ONLY valid JSON:
+{{
+  "critique": ["short list of issues found and fixed — max 5 items"],
+  "blocks": [ ...the CORRECTED full block sequence... ]
+}}
+
+If the plan is already perfect, return the same blocks with critique=["no issues"].
+"""
+        try:
+            raw = (await _call_claude_async(
+                f"You are a senior pre-press typographic reviewer. Output strictly valid JSON in {lang}.",
+                prompt,
+                max_tokens=4500,
+            )).strip()
+            if raw.startswith("```"):
+                raw = _re.sub(r'^```(?:json)?\s*|\s*```$', '', raw)
+            result = json.loads(raw)
+            return ch_idx_str, {
+                "chapter_index": ch_idx,
+                "opener_mood": ch_plan.get("opener_mood", "warm"),
+                "blocks": result.get("blocks", ch_plan.get("blocks", [])),
+            }, result.get("critique", [])
+        except Exception as e:
+            logger.warning(f"BookFactory Revisor chapter {ch_idx} failed: {e}")
+            return ch_idx_str, ch_plan, [f"review failed: {str(e)[:100]}"]
+
+    tasks = [_review_one(k, v) for k, v in layout_plan["chapters"].items()]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    for r in results:
+        if isinstance(r, Exception) or r is None:
+            continue
+        k, new_plan, issues = r
+        reviewed[k] = new_plan
+        critiques_all.append({"chapter": int(k), "issues": issues})
+    critiques_all.sort(key=lambda x: x["chapter"])
+
+    layout_plan["chapters"] = reviewed
+    layout_plan["review_critiques"] = critiques_all
+    book_bible["layout_plan"] = layout_plan
+    book_bible["layout_plan_reviewed"] = True
+    pb = project.get("project_bible", {}) or {}
+    pb["book_bible"] = book_bible
+    project["project_bible"] = pb
+    _add_milestone(project, "book_layout_reviewed", f"Revisor Tipográfico auditou {len(reviewed)} capítulos")
+    _save_project(tenant["id"], settings, projects)
+    return {"status": "reviewed", "chapters": len(reviewed), "critiques": critiques_all}
+
+
+
 @router.post("/projects/{project_id}/book/render-pdf")
 async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
-    """Layout Designer decides specs + WeasyPrint renders PDF."""
+    """Layout Designer decides specs + WeasyPrint renders PDF.
+    Honors `book_bible.layout_plan` if the Diagramador Master agent has already run.
+    """
     settings, projects, project = _get_project(tenant["id"], project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -832,6 +1092,7 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
     chapters_dict = book_bible.get("chapters") or {}
     plan = book_bible.get("illustration_plan") or []
     cover = book_bible.get("cover") or {}
+    layout_plan = book_bible.get("layout_plan") or {}  # from Diagramador Master
 
     if not chapters_dict:
         raise HTTPException(status_code=400, detail="No chapters ready for layout")
@@ -879,13 +1140,45 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
 
     # ── LAYOUT DESIGNER (Diagramador) ─────────────────────────────────
     # Distribui ilustrações do capítulo ao longo da prosa (não todas empilhadas no topo!).
-    # Estratégia:
-    #   - Se 1 ilustração: coloca 60-70% do capítulo (após clímax visual).
-    #   - Se 2+ ilustrações: primeira no topo (após título), restantes distribuídas.
-    #   - Spot illustrations: inline, 50% width
-    #   - Full: page-break (ocupa a próxima página cheia)
+    # Se `layout_plan[chapter_idx].blocks` foi definido pelo Diagramador Master LLM,
+    # usamos ele diretamente (respeita âncoras por SENTENÇA). Caso contrário, fallback
+    # heurístico proporcional.
+    def _sentences(text: str) -> list:
+        """Split prose into sentences naïvely but respecting dialogue."""
+        import re as _re_s
+        # Split on . ! ? followed by space+Capital OR end
+        parts = _re_s.split(r'(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ—"\'«])', text.strip())
+        return [p.strip() for p in parts if p.strip()]
+
+    def _build_blocks_from_layout_plan(ch_idx: int, prose: str, illus_list: list) -> list:
+        """Use the LLM-generated layout plan (with insert_after_sentence anchors)."""
+        ch_plan = (layout_plan.get("chapters") or {}).get(str(ch_idx)) or (layout_plan.get("chapters") or {}).get(ch_idx)
+        if not ch_plan:
+            return None  # caller should fallback
+        paras = [p.strip() for p in (prose or "").split("\n\n") if p.strip() and not p.strip().startswith("##")]
+        illus_by_id = {i.get("page_number"): i for i in (illus_list or []) if i.get("illustration_url")}
+        blocks = []
+        for b in (ch_plan.get("blocks") or []):
+            btype = b.get("type")
+            if btype == "paragraph":
+                idx = b.get("index")
+                if idx is not None and 0 <= idx < len(paras):
+                    blocks.append({"type": "para", "text": paras[idx]})
+            elif btype == "illustration":
+                pn = b.get("page_number") or b.get("illustration_id")
+                illus = illus_by_id.get(pn)
+                if illus:
+                    blocks.append({"type": "illus", "data": {**illus, "caption": b.get("caption", "")}})
+            elif btype == "pull_quote":
+                blocks.append({"type": "pullquote", "text": b.get("text", ""), "attribution": b.get("attribution", "")})
+            elif btype == "section_break":
+                blocks.append({"type": "section_break"})
+            elif btype == "chapter_opener":
+                blocks.append({"type": "chapter_opener", "style": b.get("style", "drop_cap"), "epigraph": b.get("epigraph", "")})
+        return blocks if blocks else None
+
     def _anchor_illustrations(prose_text: str, illus_list: list) -> list:
-        """Returns list of 'blocks' ordered: either {'type':'para','text':str} or {'type':'illus','data':dict}."""
+        """Heuristic fallback: distribute illustrations evenly across paragraphs."""
         paras = [p.strip() for p in (prose_text or "").split("\n\n") if p.strip() and not p.strip().startswith("##")]
         illus_ready = [i for i in (illus_list or []) if i.get("illustration_url")]
         blocks = []
@@ -897,35 +1190,26 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
         m = len(illus_ready)
         if m == 0:
             return [{"type": "para", "text": p} for p in paras]
-        # Anchor positions (para index AFTER which to insert)
         if m == 1:
-            anchor_positions = [max(0, int(n * 0.35))]  # roughly 35% in
+            anchor_positions = [max(0, int(n * 0.35))]
         else:
-            # First one at top (position -1 → before any paragraph), others evenly spread
             anchor_positions = [-1]
             for i in range(1, m):
                 pos = max(0, min(n - 1, int(i * n / m)))
                 anchor_positions.append(pos)
-        # Build blocks: walk paragraphs, insert illus after reaching anchor
         illus_iter = iter(list(zip(anchor_positions, illus_ready)))
-        pending = []
-        try:
-            cur = next(illus_iter)
-        except StopIteration:
-            cur = None
-        # Handle pre-paragraph illus (position == -1)
+        try: cur = next(illus_iter)
+        except StopIteration: cur = None
         while cur and cur[0] < 0:
-            pending.append({"type": "illus", "data": cur[1]})
+            blocks.append({"type": "illus", "data": cur[1]})
             try: cur = next(illus_iter)
             except StopIteration: cur = None
-        blocks.extend(pending)
         for idx, p in enumerate(paras):
             blocks.append({"type": "para", "text": p})
             while cur and cur[0] == idx:
                 blocks.append({"type": "illus", "data": cur[1]})
                 try: cur = next(illus_iter)
                 except StopIteration: cur = None
-        # Any illustrations with anchor >= n go to end
         while cur:
             blocks.append({"type": "illus", "data": cur[1]})
             try: cur = next(illus_iter)
@@ -938,10 +1222,14 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
     for p in plan:
         illus_by_chapter.setdefault(p.get("chapter"), []).append(p)
 
-    # Attach anchored blocks per chapter
+    # Attach blocks per chapter: prefer LLM layout plan, fallback to heuristic
     for ch in ordered:
-        ch_illus = illus_by_chapter.get(ch.get("index"), [])
-        ch["_blocks"] = _anchor_illustrations(ch.get("prose", ""), ch_illus)
+        ch_idx = ch.get("index")
+        ch_illus = illus_by_chapter.get(ch_idx, [])
+        blocks = _build_blocks_from_layout_plan(ch_idx, ch.get("prose", ""), ch_illus)
+        if not blocks:
+            blocks = _anchor_illustrations(ch.get("prose", ""), ch_illus)
+        ch["_blocks"] = blocks
 
     # Render HTML (1st pass without padding)
     from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -1393,6 +1681,19 @@ async def _run_book_pipeline_background(tenant: dict, project_id: str):
                 await book_generate_cover_v2(project_id, tenant)
             except Exception as e:
                 _log(f"Capa falhou (seguindo): {str(e)[:150]}", "cover_error")
+
+            # Diagramador Master + Revisor Tipográfico (2 agentes LLM)
+            _log("Diagramador Master planejando layout", "design_layout")
+            try:
+                await book_design_layout(project_id, tenant)
+            except Exception as e:
+                _log(f"Diagramador falhou (fallback heurístico): {str(e)[:150]}", "design_layout_error")
+
+            _log("Revisor Tipográfico auditando layout", "review_layout")
+            try:
+                await book_review_layout(project_id, tenant)
+            except Exception as e:
+                _log(f"Revisor falhou (usando plano sem revisão): {str(e)[:150]}", "review_layout_error")
 
             # Render chapter-based PDF
             _log("Renderizando PDF (chapter layout)", "render")
