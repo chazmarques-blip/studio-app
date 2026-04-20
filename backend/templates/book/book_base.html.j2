@@ -114,37 +114,110 @@
   }
   {% endif %}
 
+  /* ─── ILLUSTRATIONS — uniform finishing across all tiers ──────── */
+  /* Design rule: all images get the same corner radius (2mm), same subtle
+     border (0.3mm warm grey), same figcaption treatment. Three size tiers:
+       .full-page  → own dedicated page, framed w/ margin so radius is visible
+       .half       → banner inside a text page (full width, ~80mm tall)
+       .spot       → inline, float right, ~55mm wide, text wraps around it
+  */
   figure.illustration {
     page-break-inside: avoid;
     text-align: center;
-    margin: 6mm 0;
+    margin: 5mm 0;
   }
+  figure.illustration img {
+    display: block;
+    margin: 0 auto;
+    border-radius: 2mm;
+    border: 0.3mm solid #e3ddd0;
+    box-sizing: border-box;
+    background: #fff;
+  }
+  figure.illustration figcaption {
+    font-family: 'EB Garamond', Garamond, serif;
+    font-size: 8.5pt;
+    font-style: italic;
+    color: #7a6a52;
+    margin-top: 2mm;
+    text-align: center;
+    max-width: 85%;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.3;
+  }
+
+  /* TIER 1: FULL-PAGE — dedicated page, framed inset so radius is visible */
   figure.illustration.full-page {
     page-break-before: always;
     page-break-after: always;
-    margin: 0;
-  }
-  figure.illustration img {
-    max-width: 100%;
-    max-height: 150mm;
-    border-radius: 2mm;
+    margin: 8mm 6mm;
+    text-align: center;
   }
   figure.illustration.full-page img {
     width: 100%;
-    height: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 185mm;
     object-fit: cover;
-    border-radius: 0;
+  }
+  figure.illustration.full-page figcaption {
+    margin-top: 5mm;
+    font-size: 9.5pt;
+  }
+
+  /* TIER 2: HALF / BANNER — horizontal banner inside a text page */
+  figure.illustration.half {
+    page-break-inside: avoid;
+    margin: 6mm 0;
+    text-align: center;
+  }
+  figure.illustration.half img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 90mm;
+    object-fit: cover;
+  }
+
+  /* TIER 3: SPOT — inline, floats right, TEXT WRAPS AROUND IT */
+  figure.illustration.spot {
+    float: right;
+    width: 55mm;
+    margin: 0 0 3mm 5mm;
+    padding: 0;
+    text-align: center;
   }
   figure.illustration.spot img {
-    max-width: 58%;
-    max-height: 85mm;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 70mm;
+    object-fit: cover;
   }
-  figure.illustration figcaption {
-    font-size: 8.5pt;
-    font-style: italic;
-    color: #666;
-    margin-top: 2mm;
-    text-align: center;
+  figure.illustration.spot figcaption {
+    font-size: 7.5pt;
+    margin-top: 1.5mm;
+    max-width: 100%;
+  }
+
+  /* Section breaks clear any floating spot so the next section starts fresh */
+  .section-break, .chapter-opener, h2 {
+    clear: both;
+  }
+
+  /* SPREAD type → render as full-page banner for now */
+  figure.illustration.spread {
+    page-break-before: always;
+    page-break-after: always;
+    margin: 8mm 0;
+  }
+  figure.illustration.spread img {
+    width: 100%;
+    height: auto;
+    max-height: 185mm;
+    object-fit: cover;
+    border-radius: 2mm;
   }
 
   /* Chapter opener styles (set by Diagramador Master) */
@@ -218,7 +291,19 @@
 
 {% macro render_illustration(illus) %}
   {%- set t = illus.type or 'full' -%}
-  <figure class="illustration {{ t }}{% if t == 'full' or t == 'spread' %} full-page{% endif %}">
+  {# Map types to CSS tiers: full-page | half | spot | spread #}
+  {%- if t == 'full' -%}
+    {%- set cls = 'full-page' -%}
+  {%- elif t == 'half' or t == 'banner' -%}
+    {%- set cls = 'half' -%}
+  {%- elif t == 'spot' -%}
+    {%- set cls = 'spot' -%}
+  {%- elif t == 'spread' -%}
+    {%- set cls = 'spread' -%}
+  {%- else -%}
+    {%- set cls = 'full-page' -%}
+  {%- endif -%}
+  <figure class="illustration {{ cls }}">
     <img src="{{ illus.illustration_url }}" alt="" />
     {% if illus.caption %}<figcaption>{{ illus.caption }}</figcaption>{% endif %}
   </figure>

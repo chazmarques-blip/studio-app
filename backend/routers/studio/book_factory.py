@@ -899,11 +899,17 @@ AVAILABLE ILLUSTRATIONS FOR THIS CHAPTER:
 DESIGN RULES:
 1. Every illustration must be placed ADJACENT to the paragraph whose content it depicts. Read each illustration's description and find the paragraph that describes that moment. Put the illustration IMMEDIATELY AFTER that paragraph.
 2. Do NOT stack illustrations at the chapter opening. Distribute them naturally where they belong narratively.
-3. Use "chapter_opener" as the first block with style="drop_cap" (elegant) or "cinematic" (dramatic) — pick based on the chapter's mood.
-4. Optionally add "pull_quote" blocks (max 1 per chapter) for a line with standalone literary power.
-5. Optionally add "section_break" blocks between acts of the chapter (subtle ornamental rest).
-6. Every paragraph MUST appear exactly once as a "paragraph" block.
-7. The order of blocks MUST tell the chapter in sequence.
+3. DECIDE THE SIZE TIER for each illustration (this controls visual rhythm):
+   - "full" = full-page dedicated image (dramatic moments, climax, emotional peaks — max 1 per chapter)
+   - "half" = horizontal banner inside a text page (~90mm tall, full width — great for action/establishing shots, pairs well with flanking paragraphs)
+   - "spot" = small inline image with text wrapping around it on the right side (~55×70mm — for character close-ups, quick beats)
+   Vary the tiers: avoid 3 fulls in a row. Most chapters should mix 1 full + 2-3 half/spot.
+   **CRITICAL for "spot":** must be followed by AT LEAST 2 paragraph blocks (text wraps around it). Never place a spot as the last block of the chapter. If a spot would be too close to the end, promote it to "half" instead.
+4. Use "chapter_opener" as the first block with style="drop_cap" (elegant) or "cinematic" (dramatic) — pick based on the chapter's mood.
+5. Optionally add "pull_quote" blocks (max 1 per chapter) for a line with standalone literary power.
+6. Optionally add "section_break" blocks between acts of the chapter (subtle ornamental rest).
+7. Every paragraph MUST appear exactly once as a "paragraph" block.
+8. The order of blocks MUST tell the chapter in sequence.
 
 Return ONLY valid JSON (no prose, no markdown fences):
 {{
@@ -913,17 +919,19 @@ Return ONLY valid JSON (no prose, no markdown fences):
     {{"type": "chapter_opener", "style": "drop_cap", "epigraph": ""}},
     {{"type": "paragraph", "index": 0}},
     {{"type": "paragraph", "index": 1}},
-    {{"type": "illustration", "page_number": 1, "caption": "optional short caption"}},
+    {{"type": "illustration", "page_number": 1, "size_tier": "half", "caption": "optional short caption"}},
     {{"type": "paragraph", "index": 2}},
     {{"type": "pull_quote", "text": "exact short line copied from prose", "attribution": ""}},
     {{"type": "section_break"}},
-    {{"type": "paragraph", "index": 3}}
+    {{"type": "paragraph", "index": 3}},
+    {{"type": "illustration", "page_number": 2, "size_tier": "spot", "caption": ""}}
   ]
 }}
 
 IMPORTANT:
 - "page_number" in illustration blocks MUST match an `id` from the AVAILABLE ILLUSTRATIONS list.
 - "index" in paragraph blocks MUST match the [N] indices shown above.
+- "size_tier" MUST be "full", "half", or "spot" (exactly one of these three strings).
 - Do not invent paragraphs. Only reference existing [N] indices.
 """
         try:
@@ -1027,6 +1035,7 @@ AUDIT CHECKLIST:
 4. PULL QUOTES — If present, the text must appear VERBATIM in one of the paragraphs above. Otherwise remove.
 5. COMPLETENESS — Every paragraph [N] must appear exactly once.
 6. NARRATIVE ORDER — Paragraphs must appear in natural index order (0,1,2,3...). Section breaks may split but indices stay ordered.
+7. SIZE TIER VARIETY — Every illustration must have `size_tier` set to "full", "half", or "spot". At most 1 "full" per chapter (dramatic peak only). Prefer "half" (banner) and "spot" (inline right-float) for visual rhythm. If a block lacks size_tier or has wrong tier, set it.
 
 Return ONLY valid JSON:
 {{
@@ -1157,8 +1166,16 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
             return None  # caller should fallback
         paras = [p.strip() for p in (prose or "").split("\n\n") if p.strip() and not p.strip().startswith("##")]
         illus_by_id = {i.get("page_number"): i for i in (illus_list or []) if i.get("illustration_url")}
+        raw_blocks = ch_plan.get("blocks") or []
+        # Safety pass: promote "spot" to "half" if not followed by at least 2 paragraphs
+        # (text needs something to wrap around — otherwise the spot looks weird floating at the end)
+        for i, b in enumerate(raw_blocks):
+            if b.get("type") == "illustration" and b.get("size_tier") == "spot":
+                paras_after = sum(1 for nb in raw_blocks[i + 1:] if nb.get("type") == "paragraph")
+                if paras_after < 2:
+                    b["size_tier"] = "half"
         blocks = []
-        for b in (ch_plan.get("blocks") or []):
+        for b in raw_blocks:
             btype = b.get("type")
             if btype == "paragraph":
                 idx = b.get("index")
@@ -1168,7 +1185,12 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
                 pn = b.get("page_number") or b.get("illustration_id")
                 illus = illus_by_id.get(pn)
                 if illus:
-                    blocks.append({"type": "illus", "data": {**illus, "caption": b.get("caption", "")}})
+                    # Diagramador Master chose the visual tier — override the original type
+                    tier = b.get("size_tier")
+                    data = {**illus, "caption": b.get("caption", "")}
+                    if tier in ("full", "half", "spot", "spread"):
+                        data["type"] = tier
+                    blocks.append({"type": "illus", "data": data})
             elif btype == "pull_quote":
                 blocks.append({"type": "pullquote", "text": b.get("text", ""), "attribution": b.get("attribution", "")})
             elif btype == "section_break":
