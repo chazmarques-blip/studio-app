@@ -179,10 +179,10 @@ function DarkMockup() {
                         <meta.Icon size={14} className="text-white" />
                       </div>
 
-                      <button className="px-3 h-8 rounded-full bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-[11px] font-medium flex items-center gap-1.5 transition border border-violet-500/20">
+                      <button className="w-[108px] h-8 rounded-full bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-violet-500/20">
                         <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="px-3 h-8 rounded-full bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 text-[11px] font-medium flex items-center gap-1.5 transition border border-orange-500/20">
+                      <button className="w-[100px] h-8 rounded-full bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-orange-500/20">
                         <BookOpen size={12} /> Carregar
                       </button>
                       <button className="p-1.5 rounded-md hover:bg-white/10 transition">
@@ -356,10 +356,10 @@ function LightMockup() {
                         <meta.Icon size={14} className="text-white" />
                       </div>
 
-                      <button className="px-3 h-8 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-violet-100">
+                      <button className="w-[108px] h-8 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-violet-100">
                         <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="px-3 h-8 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-orange-100">
+                      <button className="w-[100px] h-8 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-orange-100">
                         <BookOpen size={12} /> Carregar
                       </button>
                       <button className="p-1.5 rounded-md hover:bg-gray-100 transition">
