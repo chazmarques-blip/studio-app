@@ -52,6 +52,7 @@ const PageLoader = () => (
 
 // ── Code Splitting: Heavy pages loaded on demand ──
 const LandingV2 = React.lazy(() => import('./pages/LandingV2'));
+const UxPreview = React.lazy(() => import('./pages/UxPreview'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const OnboardingAgentLang = React.lazy(() => import('./pages/OnboardingAgentLang'));
@@ -124,6 +125,7 @@ function App() {
         <Routes>
           {/* Public */}
           <Route path="/" element={<PublicRoute><LandingV2 /></PublicRoute>} />
+          <Route path="/ux-preview" element={<UxPreview />} />
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           {/* Onboarding */}
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
