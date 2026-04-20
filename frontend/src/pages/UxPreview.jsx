@@ -126,7 +126,7 @@ function DarkMockup() {
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-3 rounded-xl border border-[#2A2442] bg-[#1A1430] hover:border-violet-500/40 transition cursor-pointer px-3 py-2"
+                    className="group flex items-center gap-3 rounded-xl border border-[#2A2442] bg-[#1A1430] hover:border-violet-500/40 transition cursor-pointer px-2 py-1"
                   >
                     {/* Thumbnail — horizontal (16:9) */}
                     <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-[#221A3F] to-[#0D0719] overflow-hidden flex items-center justify-center relative">
@@ -303,7 +303,7 @@ function LightMockup() {
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-center gap-3 rounded-xl border border-[#EEECF5] bg-white hover:border-violet-200 hover:shadow-sm transition cursor-pointer px-3 py-2"
+                    className="group flex items-center gap-3 rounded-xl border border-[#EEECF5] bg-white hover:border-violet-200 hover:shadow-sm transition cursor-pointer px-2 py-1"
                   >
                     {/* Thumbnail — horizontal (16:9) */}
                     <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-violet-50 to-gray-100 overflow-hidden flex items-center justify-center relative">
