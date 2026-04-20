@@ -14,10 +14,10 @@ export default function Sidebar({ counts = {} }) {
   const { user, tenant } = useAuth();
 
   const ITEMS = [
-    { path: '/studio', key: 'projetos', label: 'Projetos', Icon: Home, count: counts.projects ?? null, activeRegex: /^\/(studio|dashboard|projetos)/ },
-    { path: '/avatars', key: 'personagens', label: 'Personagens', Icon: Users, count: counts.characters ?? null, activeRegex: /^\/avatars/ },
-    { path: '/agents', key: 'agentes', label: 'Agentes', Icon: Bot, count: null, activeRegex: /^\/agents/ },
-    { path: '/settings/channels', key: 'config', label: 'Configurações', Icon: Settings, count: null, activeRegex: /^\/settings/ },
+    { path: '/studio', key: 'projetos', label: 'Projetos', Icon: Home, count: counts.projects ?? null, activeRegex: /^\/(studio|dashboard|projetos)(?!\?gallery)/, isActive: (loc) => /^\/(studio|dashboard|projetos)/.test(loc.pathname) && !loc.search.includes('gallery=') },
+    { path: '/studio?gallery=1', key: 'personagens', label: 'Personagens', Icon: Users, count: counts.characters ?? null, activeRegex: /gallery=1/, isActive: (loc) => loc.search.includes('gallery=') },
+    { path: '/agents', key: 'agentes', label: 'Agentes', Icon: Bot, count: null, activeRegex: /^\/agents/, isActive: (loc) => /^\/agents/.test(loc.pathname) },
+    { path: '/settings/channels', key: 'config', label: 'Configurações', Icon: Settings, count: null, activeRegex: /^\/settings/, isActive: (loc) => /^\/settings/.test(loc.pathname) },
   ];
 
   const initials = (user?.full_name || user?.email || 'U').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
@@ -38,8 +38,8 @@ export default function Sidebar({ counts = {} }) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {ITEMS.map(({ path, key, label, Icon, count, activeRegex }) => {
-          const active = activeRegex.test(location.pathname);
+        {ITEMS.map(({ path, key, label, Icon, count, isActive }) => {
+          const active = isActive(location);
           return (
             <button
               key={key}

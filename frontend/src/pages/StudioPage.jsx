@@ -325,6 +325,14 @@ export default function StudioPage() {
   
   // Global Character Library
   const [showGlobalLibrary, setShowGlobalLibrary] = useState(false);
+
+  // Open gallery automatically when navigated with ?gallery=1 (from Sidebar "Personagens")
+  useEffect(() => {
+    if (searchParams.get('gallery') === '1') {
+      setShowGlobalLibrary(true);
+      // Keep the param so the sidebar stays highlighted while modal is open
+    }
+  }, [searchParams]);
   
   // Company selection (duplicated from Marketing for Videos context)
   const [companies, setCompanies] = useState([]);
@@ -1766,7 +1774,14 @@ export default function StudioPage() {
       {/* ═══════ GLOBAL CHARACTER LIBRARY MODAL (Must be BEFORE AvatarModal in DOM) ═══════ */}
       <AvatarLibraryModalV2
         open={showGlobalLibrary}
-        onClose={() => setShowGlobalLibrary(false)}
+        onClose={() => {
+          setShowGlobalLibrary(false);
+          if (searchParams.get('gallery')) {
+            const sp = new URLSearchParams(searchParams);
+            sp.delete('gallery');
+            setSearchParams(sp, { replace: true });
+          }
+        }}
         projectId={null}
         projectAvatarIds={new Set()}
         avatarsCache={avatars}
