@@ -120,27 +120,27 @@ function DarkMockup() {
               })}
             </div>
 
-            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
+            <div className="space-y-1.5" style={{ fontFamily: "'Manrope', system-ui" }}>
               {items.map((p) => {
                 const meta = TYPE_META[p.type];
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-stretch gap-4 rounded-2xl border border-[#262626] bg-[#121212] hover:border-[#3a3a3a] transition cursor-pointer p-3"
+                    className="group flex items-center gap-3 rounded-xl border border-[#262626] bg-[#121212] hover:border-[#3a3a3a] transition cursor-pointer px-3 py-2"
                   >
-                    {/* Thumbnail — vertical (3:4 book cover aspect) */}
-                    <div className="w-20 shrink-0 rounded-lg bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center relative aspect-[3/4]">
+                    {/* Thumbnail — horizontal (16:9 video aspect) */}
+                    <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-[#171717] to-[#0a0a0a] overflow-hidden flex items-center justify-center relative">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={26} strokeWidth={1.25} className="text-[#3a3a3a]" />
+                        <meta.Icon size={22} strokeWidth={1.25} className="text-[#3a3a3a]" />
                       )}
                     </div>
 
                     {/* Name + meta */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h3 className="text-[15px] font-semibold text-white truncate leading-tight">{p.name}</h3>
-                      <div className="flex items-center gap-2.5 text-[11px] text-[#A3A3A3] mt-1.5 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[14px] font-semibold text-white truncate leading-tight">{p.name}</h3>
+                      <div className="flex items-center gap-2.5 text-[11px] text-[#A3A3A3] mt-1 flex-wrap">
                         <span className={`inline-flex items-center gap-1 font-medium ${meta.dark}`}>
                           <meta.Icon size={11} /> {meta.label}
                         </span>
@@ -172,27 +172,20 @@ function DarkMockup() {
                     </div>
 
                     {/* Status badge + actions (right side) */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      {/* Big status pill */}
-                      <div className="flex flex-col items-center gap-1 px-2">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                          p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-[#3a3a3a] to-[#262626] border border-[#525252]'
-                        }`}>
-                          <meta.Icon size={16} className="text-white" />
-                        </div>
-                        <span className={`text-[9px] font-mono uppercase tracking-wider ${p.done ? 'text-amber-400' : 'text-[#737373]'}`}>
-                          {p.done ? 'Pronto' : 'Progresso'}
-                        </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
+                        p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-[#3a3a3a] to-[#262626] border border-[#525252]'
+                      }`} title={p.done ? 'Pronto' : 'Em progresso'}>
+                        <meta.Icon size={14} className="text-white" />
                       </div>
 
-                      {/* Action pills */}
-                      <button className="px-3 h-9 rounded-full bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 text-[12px] font-medium flex items-center gap-1.5 transition">
-                        <BookOpen size={13} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
+                      <button className="px-3 h-8 rounded-full bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 text-[11px] font-medium flex items-center gap-1.5 transition">
+                        <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="px-3 h-9 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[12px] font-medium flex items-center gap-1.5 transition">
-                        <BookOpen size={13} /> Carregar
+                      <button className="px-3 h-8 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[11px] font-medium flex items-center gap-1.5 transition">
+                        <BookOpen size={12} /> Carregar
                       </button>
-                      <button className="p-2 rounded-md hover:bg-white/10 transition">
+                      <button className="p-1.5 rounded-md hover:bg-white/10 transition">
                         <MoreHorizontal size={14} className="text-[#737373]" />
                       </button>
                     </div>
@@ -304,27 +297,27 @@ function LightMockup() {
               })}
             </div>
 
-            <div className="space-y-2" style={{ fontFamily: "'Manrope', system-ui" }}>
+            <div className="space-y-1.5" style={{ fontFamily: "'Manrope', system-ui" }}>
               {items.map((p) => {
                 const meta = TYPE_META[p.type];
                 return (
                   <div
                     key={p.id}
-                    className="group flex items-stretch gap-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer p-3"
+                    className="group flex items-center gap-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm transition cursor-pointer px-3 py-2"
                   >
-                    {/* Thumbnail — vertical (3:4 book cover aspect) */}
-                    <div className="w-20 shrink-0 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center relative aspect-[3/4]">
+                    {/* Thumbnail — horizontal (16:9) */}
+                    <div className="w-28 h-16 shrink-0 rounded-md bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden flex items-center justify-center relative">
                       {p.thumb ? (
                         <img src={p.thumb} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        <meta.Icon size={26} strokeWidth={1.25} className="text-gray-300" />
+                        <meta.Icon size={22} strokeWidth={1.25} className="text-gray-300" />
                       )}
                     </div>
 
                     {/* Name + meta */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h3 className="text-[15px] font-semibold text-gray-900 truncate leading-tight">{p.name}</h3>
-                      <div className="flex items-center gap-2.5 text-[11px] text-gray-600 mt-1.5 flex-wrap">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[14px] font-semibold text-gray-900 truncate leading-tight">{p.name}</h3>
+                      <div className="flex items-center gap-2.5 text-[11px] text-gray-600 mt-1 flex-wrap">
                         <span className={`inline-flex items-center gap-1 font-medium ${meta.light}`}>
                           <meta.Icon size={11} /> {meta.label}
                         </span>
@@ -355,26 +348,21 @@ function LightMockup() {
                       </div>
                     </div>
 
-                    {/* Status badge + actions (right side) */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex flex-col items-center gap-1 px-2">
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                          p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-gray-200 to-gray-300'
-                        }`}>
-                          <meta.Icon size={16} className="text-white" />
-                        </div>
-                        <span className={`text-[9px] font-mono uppercase tracking-wider ${p.done ? 'text-amber-600' : 'text-gray-500'}`}>
-                          {p.done ? 'Pronto' : 'Progresso'}
-                        </span>
+                    {/* Status badge + actions */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
+                        p.done ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-gray-200 to-gray-300'
+                      }`} title={p.done ? 'Pronto' : 'Em progresso'}>
+                        <meta.Icon size={14} className="text-white" />
                       </div>
 
-                      <button className="px-3 h-9 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[12px] font-medium flex items-center gap-1.5 transition border border-orange-100">
-                        <BookOpen size={13} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
+                      <button className="px-3 h-8 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-orange-100">
+                        <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="px-3 h-9 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[12px] font-medium flex items-center gap-1.5 transition border border-emerald-100">
-                        <BookOpen size={13} /> Carregar
+                      <button className="px-3 h-8 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-[11px] font-medium flex items-center gap-1.5 transition border border-emerald-100">
+                        <BookOpen size={12} /> Carregar
                       </button>
-                      <button className="p-2 rounded-md hover:bg-gray-100 transition">
+                      <button className="p-1.5 rounded-md hover:bg-gray-100 transition">
                         <MoreHorizontal size={14} className="text-gray-400" />
                       </button>
                     </div>
