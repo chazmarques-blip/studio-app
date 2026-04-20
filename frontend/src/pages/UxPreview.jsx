@@ -172,21 +172,21 @@ function DarkMockup() {
                     </div>
 
                     {/* Status badge + actions (right side) */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
-                        p.done ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_16px_rgba(139,92,246,0.35)]' : 'bg-gradient-to-br from-[#2A2442] to-[#1A1430] border border-[#3A3258]'
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
+                        p.done ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_10px_rgba(139,92,246,0.3)]' : 'bg-gradient-to-br from-[#2A2442] to-[#1A1430] border border-[#3A3258]'
                       }`} title={p.done ? 'Pronto' : 'Em progresso'}>
-                        <meta.Icon size={14} className="text-white" />
+                        <meta.Icon size={10} className="text-white" />
                       </div>
 
-                      <button className="w-[108px] h-8 rounded-full bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-violet-500/20">
-                        <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
+                      <button className="w-[88px] h-6 rounded-full bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-[10px] font-medium flex items-center justify-center gap-1 transition border border-violet-500/20">
+                        <BookOpen size={10} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="w-[100px] h-8 rounded-full bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-orange-500/20">
-                        <BookOpen size={12} /> Carregar
+                      <button className="w-[80px] h-6 rounded-full bg-orange-500/10 text-orange-300 hover:bg-orange-500/20 text-[10px] font-medium flex items-center justify-center gap-1 transition border border-orange-500/20">
+                        <BookOpen size={10} /> Carregar
                       </button>
-                      <button className="p-1.5 rounded-md hover:bg-white/10 transition">
-                        <MoreHorizontal size={14} className="text-[#6B647F]" />
+                      <button className="p-1 rounded-md hover:bg-white/10 transition">
+                        <MoreHorizontal size={12} className="text-[#6B647F]" />
                       </button>
                     </div>
                   </div>
@@ -349,21 +349,21 @@ function LightMockup() {
                     </div>
 
                     {/* Status badge + actions */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
-                        p.done ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_12px_rgba(139,92,246,0.25)]' : 'bg-gradient-to-br from-gray-200 to-gray-300'
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
+                        p.done ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_8px_rgba(139,92,246,0.25)]' : 'bg-gradient-to-br from-gray-200 to-gray-300'
                       }`} title={p.done ? 'Pronto' : 'Em progresso'}>
-                        <meta.Icon size={14} className="text-white" />
+                        <meta.Icon size={10} className="text-white" />
                       </div>
 
-                      <button className="w-[108px] h-8 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-violet-100">
-                        <BookOpen size={12} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
+                      <button className="w-[88px] h-6 rounded-full bg-violet-50 text-violet-700 hover:bg-violet-100 text-[10px] font-medium flex items-center justify-center gap-1 transition border border-violet-100">
+                        <BookOpen size={10} /> {p.type === 'video' ? 'Abrir vídeo' : 'Abrir livro'}
                       </button>
-                      <button className="w-[100px] h-8 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[11px] font-medium flex items-center justify-center gap-1.5 transition border border-orange-100">
-                        <BookOpen size={12} /> Carregar
+                      <button className="w-[80px] h-6 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-[10px] font-medium flex items-center justify-center gap-1 transition border border-orange-100">
+                        <BookOpen size={10} /> Carregar
                       </button>
-                      <button className="p-1.5 rounded-md hover:bg-gray-100 transition">
-                        <MoreHorizontal size={14} className="text-gray-400" />
+                      <button className="p-1 rounded-md hover:bg-gray-100 transition">
+                        <MoreHorizontal size={12} className="text-gray-400" />
                       </button>
                     </div>
                   </div>
