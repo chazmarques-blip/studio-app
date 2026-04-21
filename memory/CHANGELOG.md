@@ -1,5 +1,80 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session 13g — Continuidade + Disney Picturebook Designer)
+
+### O que foi implementado
+
+**🎬 VÍDEO — Ativação do agente Thelma Schoonmaker**
+Antes: agente existia no catálogo mas não era chamado em lugar nenhum (fantasma).
+Agora: endpoint real `POST /api/studio/projects/{id}/continuity-audit` que:
+- Empacota scenes + character_bible + location_bible + voice_casting
+- Chama Claude via `resolve_agent_prompt("consistency_checker_agent", fallback=_VIDEO_CONTINUITY_FALLBACK)`
+- Retorna JSON estruturado: score 0-100, issues com severidade (high/medium/low), categorias (character_appearance/location/voice_continuity/timeline/plot), sugestões
+- Persiste em `project.continuity_report` + `project.continuity_status` (via `_update_project_field`)
+
+Endpoint complementar: `GET /api/studio/projects/{id}/continuity-report`
+
+**Teste real:** rodou sobre projeto "ABRAO E ISAAC E O CORDEIRO" (25 cenas) — score 45/100, 5 issues detectadas, ~17s, persistência OK.
+
+**📚 LIVRO — 2 novos agentes criados**
+
+**Agent 1: `picturebook_designer_agent` — Mary Blair**
+- Categoria: book / produção
+- Foco: livros ilustrados infantis estilo Disney (full-bleed, texto em degradê sobre arte, paleta vibrante, ritmo cinematográfico)
+- Prompt: 8 princípios inegociáveis (FULL-BLEED é lei, TEXTO SOBRE ARTE COM GRADIENTE, PALETA VIBRANTE, RITMO CINEMATOGRÁFICO, CHARACTER ACTING, CONTINUIDADE COM DINÂMICA, etc.)
+- Wire: `book_factory.py` linha ~532 — quando `format_preset == 'infantil_ilustrado'`, usa Mary Blair como agent_id (senão cai para Chip Kidd)
+
+**Agent 2: `visual_continuity_checker_book_agent` — Glen Keane**
+- Categoria: book / validação
+- Foco: auditoria visual entre spreads (character integrity, world consistency, color story, object canon, scale, style drift)
+- Temperature baixa (0.3) para rigor
+- Endpoint: `POST /api/studio/book/projects/{id}/visual-continuity-audit`
+- Retorna: `{score, critical_issues, medium_issues, minor_issues, summary}`
+- Persiste em `project.book_continuity_report`
+
+**🖥️ Frontend — `ContinuityAuditModal.jsx` (NOVO, 242 linhas)**
+- Componente polimórfico (prop `mode`: "video" | "book")
+- Score circle com gradiente dinâmico (verde/amarelo/vermelho)
+- Issues agrupadas por severidade (Crítico/Médio/Menor) com cores distintas
+- Cada issue: tipo, cenas/spreads afetados, descrição, sugestão de fix
+- Botão "Re-auditar" sempre visível quando há relatório
+- Botão "Executar Auditoria" quando é a primeira vez
+- Estado graceful: loading / empty / filled / error
+
+**DirectedStudio.jsx** — Novo botão "Auditar Continuidade" (Shield icon) ao lado do SynergyBadge, aparece quando `step >= 1 && projectId`. Modo é inferido pelo `outputMode` do projeto.
+
+### Segurança (zero-breaking validado)
+- Agentes novos `active: false` por default → endpoints usam fallback hardcoded
+- Endpoints são ADITIVOS — não tocam em nenhum fluxo existente
+- Campos `continuity_report` e `book_continuity_report` são ADITIVOS no project dict (não quebram se inexistentes)
+- LLM failure → retorna stub report com `error: true` (não raise) → modal mostra erro amigável
+- Todos os imports dos 9 módulos Python continuam OK
+
+### Arquivos modificados/criados
+- `backend/routers/studio/continuity_audit.py` (NOVO, 220 linhas)
+- `backend/routers/studio/__init__.py` (+1 import)
+- `backend/routers/studio/book_factory.py` (wire picturebook_designer_agent condicional)
+- `memory/agents/book/picturebook_designer_agent.json` (NOVO, Mary Blair, ~4700 chars de prompt)
+- `memory/agents/book/visual_continuity_checker_book_agent.json` (NOVO, Glen Keane, ~3400 chars de prompt)
+- `frontend/src/components/pipeline/ContinuityAuditModal.jsx` (NOVO, 242 linhas)
+- `frontend/src/components/DirectedStudio.jsx` (+import + showContinuityAudit state + botão + modal render)
+
+### Contagem final de agentes
+**19 agentes no total** (antes 17):
+- Vídeo: 8 (Sorkin, Tarantino, Burns, Deakins, McCullough, Kennedy, Nolan, Schoonmaker)
+- Livro: **10** (Gaiman, Perkins, Norris, Kidd, Mendelsund, Miyazaki, Tschichold, Steidl + **Mary Blair** + **Glen Keane**)
+- Áudio: 1 (Zimmer)
+
+### Testes
+- ✅ Lint JS: No issues (ContinuityAuditModal, DirectedStudio)
+- ✅ Backend importa 9 módulos sem erro
+- ✅ `/api/health` 200
+- ✅ `/api/studio/agents/registry` retorna 19 agentes
+- ✅ `POST /api/studio/projects/{id}/continuity-audit` — auditoria real rodando em 17s, score 45, 5 issues, persistência OK
+- ✅ `POST /api/studio/projects/nonexistent/continuity-audit` → 404 correto
+- ✅ Screenshot da aba "Livro" mostra 10 agentes + Mentalidade Global
+
+
 ## 2026-04-21 (Session 13f — Sprint "Tudo" concluído)
 
 Execução autônoma dos 5 itens pendentes solicitados pelo usuário:

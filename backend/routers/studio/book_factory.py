@@ -530,8 +530,12 @@ Use `page_number` as a UNIQUE integer id across the whole book (1, 2, 3, 4... ac
 """
 
     try:
+        # 🎨 For picturebook/infantil_ilustrado format, use Mary Blair (Disney visual designer) as primary,
+        # falling back to Chip Kidd (editorial art director) for other formats.
+        is_picturebook = (brief.get('format_preset') in ('infantil_ilustrado', 'picturebook'))
+        primary_agent = "picturebook_designer_agent" if is_picturebook else "art_director_editorial_agent"
         raw = (await _call_claude_async(
-            _rsys("art_director_editorial_agent", "You are an Editorial Art Director. Return only valid JSON."),
+            _rsys(primary_agent, "You are an Editorial Art Director. Return only valid JSON."),
             prompt,
             max_tokens=4000,
         )).strip()

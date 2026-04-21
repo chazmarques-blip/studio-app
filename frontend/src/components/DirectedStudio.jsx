@@ -18,6 +18,7 @@ import { StoryboardEditor } from './StoryboardEditor';
 import { DialogueEditor } from './DialogueEditor';
 import { AvatarLibraryModalV2 } from './pipeline/AvatarLibraryModalV2';
 import { SynergyBadge } from './pipeline/SynergyBadge';
+import { ContinuityAuditModal } from './pipeline/ContinuityAuditModal';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
 
@@ -413,6 +414,8 @@ export const DirectedStudio = memo(function DirectedStudio({
   const [step, setStep] = useState(initialProjectId ? 1 : 0); // Start at step 1 if project provided
   const [projectId, setProjectId] = useState(initialProjectId);
   const [projectName, setProjectName] = useState('');
+  // 🎬 Continuity audit modal
+  const [showContinuityAudit, setShowContinuityAudit] = useState(false);
   const [projectDesc, setProjectDesc] = useState('');
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -1943,7 +1946,30 @@ export const DirectedStudio = memo(function DirectedStudio({
     <div className="space-y-3 px-4 md:px-6 lg:px-8" data-testid="directed-studio">{/* Added responsive padding */}
       {/* Dream Team — Agents/Mindsets ativos para este tipo de projeto */}
       {step >= 1 && projectId && (
-        <SynergyBadge category={outputMode === 'book' ? 'book' : 'video'} />
+        <>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1">
+              <SynergyBadge category={outputMode === 'book' ? 'book' : 'video'} />
+            </div>
+            <button
+              onClick={() => setShowContinuityAudit(true)}
+              data-testid="open-continuity-audit-btn"
+              className="shrink-0 h-9 px-3 rounded-lg border border-violet-300 dark:border-violet-500/30 bg-white dark:bg-[#1A1430] text-violet-700 dark:text-violet-300 text-[11px] font-semibold inline-flex items-center gap-1.5 hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition"
+              title={outputMode === 'book' ? 'Glen Keane audita continuidade visual' : 'Thelma Schoonmaker audita continuidade'}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Auditar Continuidade
+            </button>
+          </div>
+          {showContinuityAudit && (
+            <ContinuityAuditModal
+              open={showContinuityAudit}
+              onClose={() => setShowContinuityAudit(false)}
+              projectId={projectId}
+              mode={outputMode === 'book' ? 'book' : 'video'}
+            />
+          )}
+        </>
       )}
       {/* Hybrid Project Banner — when output_mode === 'both', offer direct jump to BookStudio */}
       {step >= 1 && outputMode === 'both' && projectId && (
