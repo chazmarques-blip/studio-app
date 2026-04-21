@@ -35,12 +35,18 @@
   "min_quality_score": 85,
   "examples": [
     {
-      "scene_range": [1, 3],
+      "scene_range": [
+        1,
+        3
+      ],
       "good_narration": "Paris, 1898. A cidade das luzes testemunhava o nascimento de uma nova era — mas poucos saberiam que a verdadeira revolução acontecia não nos salões da academia, mas nas mãos calejadas de uma mulher que ousou perguntar: e se a própria matéria pudesse brilhar?",
       "bad_narration": "Esta é a história de Marie Curie. Ela era uma cientista em Paris no ano de 1898. Ela trabalhava muito.",
       "why_good": "Cria atmosfera, usa metáfora poderosa (luzes/revolução), estabelece conflito (academia vs realidade), termina com questão retórica que prende atenção"
     }
   ],
   "created_at": "2025-12-29",
-  "updated_at": "2025-12-29"
+  "updated_at": "2025-12-29",
+  "active": false,
+  "temperature": 0.7,
+  "model": "claude-sonnet-4-5"
 }

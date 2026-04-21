@@ -1,5 +1,78 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session 13c — Agents Registry: UI + Runtime Wiring)
+
+### Objetivo do usuário
+> "Quero que os agentes aqui sejam exatamente os integrados no sistema de pipelines, porque quando ajustamos um agente aqui melhorando seu prompt isso influencia diretamente no resultado da entrega dos produtos."
+
+### Arquitetura implementada
+**Single Source of Truth** para prompts da pipeline de IA com padrão zero-breaking-changes:
+
+1. **Backend registry expandido** (`/app/backend/routers/studio/agents_registry.py`)
+   - `GET /api/studio/agents/registry` — lista todos (video/book/audio) com category, active, model, updated_at
+   - `GET /api/studio/agents/registry/{id}` — spec completo
+   - `PUT /api/studio/agents/registry/{id}` — salva + anexa `edit_history` (últimas 20 versões, com timestamp e autor)
+   - `POST /api/studio/agents/registry/{id}/rollback` — restaura versão anterior do histórico
+   - Agora inclui pasta `/app/memory/agents/book/` (8 agentes antes invisíveis)
+   - Helper runtime `resolve_agent_prompt(agent_id, fallback)` — retorna JSON se `active=true`, senão fallback hardcoded
+
+2. **Seed dos 17 agentes** (18 incluindo compositions, mas essa é filtrada)
+   - Todos com `active: false` por padrão → fallback hardcoded é usado (sem mudança de comportamento)
+   - Campos `temperature`, `model` adicionados quando ausentes
+   - Video (8): Pesquisador Histórico, Pesquisador Visual, Orquestrador, Roteirista, Escritor Diálogos, Escritor Narração, Validador Qualidade, Verificador Consistência
+   - Book (8): Autor, Book Editor, Diretor de Arte, Capista, Ilustrador, Layout, Preflight, Revisor
+   - Audio (1): Sound Designer
+
+3. **Wiring POC — Screenwriter**
+   - `screenwriter.py` linha ~380: após montar o `system_template` (Kling ou Sora), chama `resolve_agent_prompt("screenwriter_agent", fallback=system)`
+   - Se usuário ativa custom no UI → pipeline usa o novo prompt no próximo request
+   - Se JSON quebra ou tem erro → fallback silencioso mantém comportamento atual
+
+4. **Frontend `AgentsPage.jsx` reescrito** (400 lines)
+   - Layout unificado com Sidebar + AppHeader (mesmo padrão de Projetos/Personagens)
+   - Tabs: Todos / Vídeo / Livro / Áudio (com contadores)
+   - Cards agrupados por pipeline quando "Todos" selecionado
+   - Badge visual `CUSTOM` (violeta) vs `DEFAULT` (cinza) em cada card
+   - Modal de edição: toggle ativo/desativo, system_prompt (textarea), temperatura (slider), min_quality_score (slider), responsabilidades, histórico com rollback
+   - Busca + filtros por categoria
+   - Dark/Light mode nativos (paleta violeta/laranja)
+
+### Routing
+- `/agents` → AgentsPage (agora é a página de pipeline agents, substitui legacy WhatsApp agents)
+- `/studio/agents` → AgentsPage (alias)
+- Sidebar "Agentes" aponta para `/studio/agents` (ativo em ambas)
+- Movido `/studio/agents` para dentro do `<AppLayout>` block (renderiza sidebar+header)
+
+### Arquivos modificados/criados
+- `backend/routers/studio/agents_registry.py` — reescrito (200 linhas, 4 endpoints + helper)
+- `backend/routers/studio/screenwriter.py` — linha 380 wiring do resolve_agent_prompt
+- `frontend/src/pages/AgentsPage.jsx` — reescrito (400 linhas)
+- `frontend/src/components/layout/Sidebar.jsx` — path `/agents` → `/studio/agents`
+- `frontend/src/App.js` — rotas `/agents` e `/studio/agents` dentro do AppLayout
+- `memory/agents/*.json` × 9 + `memory/agents/book/*.json` × 8 — seed com `active:false`, `temperature:0.7`, `model`
+
+### Testes realizados
+- Lint JS: ✅ No issues found
+- `GET /api/studio/agents/registry` → 17 agentes (8 video, 8 book, 1 audio) ✅
+- `PUT /api/studio/agents/registry/screenwriter_agent` → 200 + history_size:1 ✅
+- `GET /api/studio/agents/registry/screenwriter_agent` → description updated, temperature 0.75, edit_history populated ✅
+- Screenshot Agents page (light mode): ✅ layout unificado com sidebar, cards agrupados por pipeline, badges CUSTOM/DEFAULT
+- Screenshot modal de edição do Screenwriter: ✅ toggle, system prompt textarea, slider temperatura/qualidade, responsabilidades, footer Salvar
+
+### Próximas etapas (Phase 2 wiring restante)
+O padrão `resolve_agent_prompt("agent_id", fallback=hardcoded)` deve ser aplicado em:
+- `storyboard.py` → `visual_researcher_agent`
+- `dialogues.py` → `dialogue_writer_agent`
+- `narration.py` → `narrator_agent`
+- `sound_design_agent.py` → `sound_designer_agent`
+- `book_factory.py` → todos os 8 agentes book
+- `storyboard_validator.py` → `consistency_checker_agent`, `quality_validator_agent`
+- `director.py` / `autonomous_loop.py` → `orchestrator_agent`
+
+Aplicar 1 agente por vez, seedar o JSON com o prompt real hardcoded (ou deixar active:false), e testar.
+
+
+
 ## 2026-04-21 (Session 13b — Galeria unificada como página dedicada)
 
 ### Problema reportado pelo usuário

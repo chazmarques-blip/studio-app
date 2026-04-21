@@ -136,7 +136,9 @@ function App() {
             <Route path="/dashboard" element={<Navigate to="/studio" replace />} />
             <Route path="/studio" element={<StudioPage />} />
             <Route path="/chat" element={<Chat />} />
-            <Route path="/agents" element={<Agents />} />
+            {/* /agents now renders the new AgentsPage (StudioX AI Agents Registry) */}
+            <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/studio/agents" element={<AgentsPage />} />
             <Route path="/crm" element={<CRM />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/marketing" element={<Marketing />} />
@@ -155,7 +157,6 @@ function App() {
           <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
           <Route path="/studio/book/:projectId" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
           <Route path="/studio/book" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
-          <Route path="/studio/agents" element={<ProtectedRoute><AgentsPage /></ProtectedRoute>} />
           <Route path="/book/:projectId" element={<InteractiveBook />} />
           <Route path="/traffic-hub" element={<ProtectedRoute><TrafficHub /></ProtectedRoute>} />
           <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />
