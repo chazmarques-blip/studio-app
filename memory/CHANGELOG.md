@@ -1,5 +1,23 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session — Bug Fix: Modal coberto pela Sidebar)
+
+### Problema reportado
+Screenshot do usuário mostrando o modal de preview de vídeo (`media-preview-modal`) sendo **parcialmente coberto pela sidebar de 240px**. O modal tem `z-[60]` e a sidebar `z-40`, então deveria aparecer por cima, mas estava aparecendo por baixo.
+
+### Causa raiz
+`AppLayout.jsx` tinha `<main className="relative z-10 md:ml-60 pt-12">`. O **`z-10` criava um stacking context** que "aprisionava" todos os z-indexes dos descendentes — independente de quão altos fossem (z-50, z-60, z-100), eles passavam a competir internamente dentro do contexto z-10, e a partir da raiz ficavam efetivamente abaixo da sidebar (z-40) que vive no stacking context do root.
+
+### Fix
+- `AppLayout.jsx` linha 149: removido `z-10` do `<main>`. Mantido apenas `relative md:ml-60 pt-12`.
+- Resultado: modais fullscreen (`media-preview-modal z-[60]`, `post-production z-[100]`, `book editor modal z-[100]`, etc.) agora aparecem corretamente acima da sidebar (z-40) e do AppHeader (z-30).
+
+### Verificação
+- Lint limpo. Layout base testado via screenshot — sidebar + conteúdo alinhados corretamente (sem overlap).
+- Zero regressões esperadas: a z-ordem de `Sidebar > AppHeader > conteúdo` permanece natural pelo DOM order.
+
+
+
 ## 2026-04-21 (Session — Feedback Visual ao Vivo de Agentes)
 
 ### Requisito do usuário

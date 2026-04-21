@@ -146,7 +146,7 @@ export function AppLayout() {
     <div className="relative min-h-screen bg-white dark:bg-[#0A0614] text-gray-900 dark:text-white transition-colors">
       <Sidebar />
       <AppHeader />
-      <main className="relative z-10 md:ml-60 pt-12">
+      <main className="relative md:ml-60 pt-12">
         <Outlet />
       </main>
     </div>
