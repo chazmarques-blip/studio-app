@@ -1,5 +1,61 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session 13e — Sprint 1+2 Autônomo: Wiring completo + Sinergia)
+
+### Sprint 1 — Wiring runtime dos agentes na pipeline (concluído)
+Aplicado o padrão `resolve_agent_prompt(agent_id, fallback=hardcoded)` em TODOS os routers críticos:
+
+| Router | Agente(s) wired | # de call sites |
+|---|---|---|
+| `screenwriter.py` | Aaron Sorkin (screenwriter_agent) | 1 (com fix de placeholders) |
+| `parallel_agents.py` | Aaron Sorkin (screenwriter_agent) | 1 (com fix de placeholders) |
+| `dialogues.py` | Tarantino / Burns / Gaiman (mode-aware) | 1 com switch por modo |
+| `narration.py` | Hans Zimmer (sound_designer_agent) | 2 (voice casting batch + single) |
+| `sound_design_agent.py` | Hans Zimmer | 1 |
+| `book_factory.py` | Gaiman / Perkins / Kidd / Tschichold / Steidl | 9 (helper `_rsys()` adicionado) |
+
+**Fix crítico:** Em `screenwriter.py` e `parallel_agents.py`, a substituição de placeholders `{lang_name}`, `{target_duration}` etc. agora ocorre APÓS `resolve_agent_prompt()` — assim tanto prompts hardcoded quanto customizados pelo usuário suportam placeholders.
+
+**Seed de prompt real:** `screenwriter_agent.json` agora tem o prompt real de 6377 chars extraído de `SCREENWRITER_SYSTEM_SORA` (com placeholders preservados). Campo `note` documenta quais placeholders são substituídos em runtime.
+
+### Sprint 2 — Sinergia ("Dream Team" badge)
+Novo componente reutilizável `/frontend/src/components/pipeline/SynergyBadge.jsx`:
+- **Prop `compact`**: chip pequeno (violeta→laranja) mostrando "Dream Team · N" clicável → navega para `/studio/agents`
+- **Prop `compact={false}`**: card destacado com lista dos mestres ativos + mentalidade ativa + botão "Editar"
+- **Silent quando ninguém está ativo** — sem clutter para usuários no modo default
+- **Integrado em:**
+  - `StudioPage.jsx` → compact badge na barra de contexto superior (ao lado de Galeria/Novo Projeto)
+  - `DirectedStudio.jsx` → card completo acima do banner de projeto híbrido, com categoria detectada via `outputMode` (book → book mindset, video/both → video mindset)
+
+### Testes (100% pass — 27/27)
+Testing agent v3 validou:
+- ✅ GET/PUT/Rollback registry endpoints
+- ✅ GET/PUT mindsets endpoints
+- ✅ POST playground (LLM real)
+- ✅ `resolve_agent_prompt()` unit tests (4/4 safety PASS: inactive agent, inactive mindset, book fallback, unknown agent ID)
+- ✅ Pipeline routers import sem erro
+- ✅ Zero-breaking-changes: todos os agentes e mindsets permanecem `active: false` por default
+
+Testes pytest criados automaticamente em `/app/backend/tests/test_agents_registry.py`.
+
+### Sprint 3 — Tier 4 cleanup (PULADO deliberadamente)
+Decisão de segurança: remover routers legados (`whatsapp.py`, `conversations.py`, `crm`, `campaigns`, `leads`, `telegram`) tem risco não-zero de quebrar alguma referência interna. O sidebar já não linka para nenhuma dessas rotas, então elas estão efetivamente desativadas do ponto de vista do usuário. Cleanup físico fica para sessão futura com auditoria dedicada.
+
+### Arquivos modificados
+- `backend/routers/studio/agents_registry.py` (+133 linhas: mindsets, playground, helper expandido)
+- `backend/routers/studio/screenwriter.py` (wiring + fix placeholder order)
+- `backend/routers/studio/parallel_agents.py` (wiring + fix placeholder order)
+- `backend/routers/studio/dialogues.py` (wiring mode-aware)
+- `backend/routers/studio/narration.py` (2 wirings)
+- `backend/routers/studio/sound_design_agent.py` (1 wiring)
+- `backend/routers/studio/book_factory.py` (helper _rsys + 9 wirings)
+- `frontend/src/components/pipeline/SynergyBadge.jsx` (NOVO, 102 linhas)
+- `frontend/src/pages/StudioPage.jsx` (import + compact badge)
+- `frontend/src/components/DirectedStudio.jsx` (import + card cima do banner híbrido)
+- `memory/agents/screenwriter_agent.json` (seed do prompt real 6377 chars)
+
+
+
 ## 2026-04-21 (Session 13d — Mentalidades Globais + Nomes de Mestres + Playground)
 
 ### 3 features em uma arquitetura coesa
