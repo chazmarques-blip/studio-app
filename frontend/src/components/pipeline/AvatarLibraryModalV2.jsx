@@ -982,7 +982,7 @@ export function AvatarLibraryModalV2({
                           className={`flex-shrink-0 p-1 rounded transition-colors ${
                             confirmingDelete === folder.id
                               ? 'bg-red-600'
-                              : 'text-[#555] hover:text-red-400 hover:bg-red-500/10'
+                              : 'text-gray-500 dark:text-[#555] hover:text-red-400 hover:bg-red-500/10'
                           }`}
                           title={confirmingDelete === folder.id ? 'Confirmar' : 'Deletar'}
                         >
@@ -1028,7 +1028,7 @@ export function AvatarLibraryModalV2({
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-20">
-                <Users size={48} className="mx-auto text-[#333] mb-4" />
+                <Users size={48} className="mx-auto text-gray-300 dark:text-[#333] mb-4" />
                 <p className="text-sm text-gray-500 dark:text-[#888]">{library.length === 0 ? L.empty : L.noResults}</p>
               </div>
             ) : (
@@ -1045,7 +1045,7 @@ export function AvatarLibraryModalV2({
                       className={`group relative rounded-xl overflow-hidden border-2 transition-all duration-200 w-[160px] ${
                         inProject ? 'border-green-500/30 opacity-70' :
                         isSelected ? 'border-[#8B5CF6] shadow-[0_0_16px_rgba(139,92,246,0.3)] scale-[1.02]' :
-                        'border-[#1E1E1E] hover:border-[#8B5CF6]/50 hover:scale-[1.02]'
+                        'border-gray-200 dark:border-[#1E1E1E] hover:border-[#8B5CF6]/50 hover:scale-[1.02]'
                       }`}
                     >
                       {/* Main image */}
@@ -1391,14 +1391,14 @@ export function AvatarLibraryModalV2({
           }}>
             {/* Header */}
             <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
-              <h3 className="text-gray-900 dark:text-white font-bold text-sm flex items-center gap-2">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
                 <Plus size={16} />
                 {editingFolder ? 'Editar Pasta' : 'Nova Pasta'}
               </h3>
               <button onClick={() => {
                 console.log('🎯 [MODAL] Clicou no X - fechando');
                 setFolderModalOpen(false);
-              }} className="text-gray-900 dark:text-white/80 hover:text-gray-900 dark:text-white transition">
+              }} className="text-white/80 hover:text-white transition">
                 <X size={18} />
               </button>
             </div>
@@ -1413,7 +1413,7 @@ export function AvatarLibraryModalV2({
                   value={newFolderName}
                   onChange={e => setNewFolderName(e.target.value)}
                   placeholder="Ex: Projeto A"
-                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#333] text-gray-900 dark:text-white text-sm outline-none focus:border-[#8B5CF6] transition"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-gray-300 dark:border-[#333] text-gray-900 dark:text-white text-sm outline-none focus:border-[#8B5CF6] transition"
                   autoFocus
                 />
               </div>
@@ -1441,7 +1441,7 @@ export function AvatarLibraryModalV2({
                 <select
                   value={newFolderParent || ''}
                   onChange={e => setNewFolderParent(e.target.value || null)}
-                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-[#333] text-gray-900 dark:text-white text-sm outline-none focus:border-[#8B5CF6] transition"
+                  className="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#1A1A1A] border border-gray-300 dark:border-[#333] text-gray-900 dark:text-white text-sm outline-none focus:border-[#8B5CF6] transition"
                 >
                   <option value="">Nenhuma (raiz)</option>
                   {folders.map(f => (
@@ -1467,7 +1467,7 @@ export function AvatarLibraryModalV2({
                   e.stopPropagation();
                   createFolder();
                 }}
-                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-gray-900 dark:text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition text-sm flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] text-white font-bold hover:from-[#7C3AED] hover:to-[#6D28D9] transition text-sm flex items-center justify-center gap-2"
               >
                 <Plus size={16} />
                 {editingFolder ? 'Salvar' : 'Criar Pasta'}
@@ -1484,7 +1484,7 @@ export function AvatarLibraryModalV2({
           <div className="bg-white dark:bg-[#0D0D0D] rounded-2xl border border-[#8B5CF6]/20 overflow-hidden max-w-md w-full" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] px-4 py-3 flex items-center justify-between">
-              <h3 className="text-gray-900 dark:text-white font-bold text-sm flex items-center gap-2">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
                 <Download size={16} />
                 Baixar Personagem
               </h3>
@@ -1498,7 +1498,7 @@ export function AvatarLibraryModalV2({
               <img 
                 src={resolveImageUrl(downloadPreview.url)} 
                 alt={downloadPreview.name}
-                className="w-full aspect-[3/4] object-cover rounded-lg border border-[#333]"
+                className="w-full aspect-[3/4] object-cover rounded-lg border border-gray-200 dark:border-[#333]"
               />
               <p className="text-gray-900 dark:text-white text-center mt-2 font-semibold">{downloadPreview.name}</p>
             </div>
@@ -1507,7 +1507,7 @@ export function AvatarLibraryModalV2({
             <div className="px-4 pb-4 flex gap-2">
               <button
                 onClick={() => setDownloadPreview(null)}
-                className="flex-1 py-2.5 rounded-lg border border-[#333] text-gray-500 dark:text-[#999] hover:text-gray-900 dark:text-white hover:border-[#666] transition text-sm font-medium"
+                className="flex-1 py-2.5 rounded-lg border border-gray-300 dark:border-[#333] text-gray-700 dark:text-[#999] hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-[#666] transition text-sm font-medium"
               >
                 Cancelar
               </button>
@@ -1544,7 +1544,7 @@ export function AvatarLibraryModalV2({
                     toast.error('Erro ao baixar. Imagem aberta em nova aba.');
                   }
                 }}
-                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-gray-900 dark:text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-lg bg-gradient-to-r from-green-500 to-green-600 text-white font-bold hover:from-green-600 hover:to-green-700 transition text-sm flex items-center justify-center gap-2"
               >
                 <Download size={16} />
                 Baixar Agora

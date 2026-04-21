@@ -1,5 +1,82 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session 13f — Sprint "Tudo" concluído)
+
+Execução autônoma dos 5 itens pendentes solicitados pelo usuário:
+
+### 1. Seed dos prompts reais (10 de 17 agentes)
+- **8 agentes seedados com prompts hardcoded reais dos routers:**
+  - `sound_designer_agent` (940 chars) ← `narration.py`
+  - `author_agent` (1649 chars) ← `book_factory.py`
+  - `art_director_editorial_agent` (1643 chars) ← `book_factory.py`
+  - `book_editor_agent` (1405 chars) ← `book_factory.py` (Revisor Literário)
+  - `layout_designer_agent` (3274 chars) ← `book_factory.py` (Diagramador Master)
+  - `preflight_agent` (2208 chars) ← `book_factory.py` (Senior Typographic Reviewer)
+  - `cover_designer_agent` (1586 chars) ← `book_factory.py`
+  - `proofreader_agent` (1899 chars) ← `book_factory.py` (Curador Visual)
+- **2 agentes seedados com guias narrativos** (não têm prompt hardcoded direto):
+  - `researcher_agent` (David McCullough)
+  - `quality_validator_agent` (Christopher Nolan)
+- Campo `seeded_at: 2026-04-21` + `note` explicativa em cada JSON
+- Placeholders `{lang}`, `{lang_full}`, etc. preservados no seed
+
+### 2. BookFactory RAG real (phase 2)
+Substituído `core/bible_rag.py` (antes: 5 passagens + busca por palavra naive):
+- **15 passagens bíblicas** (3x mais): Abraão, Isaque, Criação, Queda, Noé, Jesus (nascimento, Sermão do Monte), Moisés, Salmo 23, Daniel, Davi & Golias
+- **Scoring TF-IDF real** com IDF pré-computado no import
+- **Stopwords portuguesas** removidas da indexação
+- **Keywords ponderadas** (3×), theme (2×), reference+text (1×)
+- API nova: `list_all_passages()`, `get_corpus_stats()` — interface compatível para swap futuro para ChromaDB/pgvector
+- Testado: query "abraão e isaque sacrifício" → retorna Hebreus 11 + Gênesis 22 com scores corretos; "criação do mundo" → Gênesis 1; "Davi gigante" → 1 Samuel 17
+
+### 3. Light mode residual da Galeria de Personagens
+Fix de 11 hex codes restantes em `AvatarLibraryModalV2.jsx`:
+- Cores grayscale (`#555`, `#333`, `#1E1E1E`) agora têm pares `gray-200/300 dark:[#...]`
+- Modais "Nova Pasta" e "Download Preview": inputs, selects, borders, botões Cancelar
+- Headers com gradiente violeta agora usam `text-white` fixo (legível sobre gradiente em qualquer tema)
+- Botões em gradientes mantêm `text-white` (não se misturam com dark mode)
+
+### 4. Tier 4 cleanup (mínimo seguro)
+Auditoria automatizada das referências:
+- `/analytics` → **zero refs** em todo o frontend → **removido** (Route + lazy import)
+- `/chat`, `/crm`, `/marketing`, `/agents/builder`, `/agents/sandbox` → mantidos (ainda têm refs internas entre páginas legado)
+- Backend: todos os routers legados (whatsapp, conversations, leads, telegram, campaigns) mantidos — apenas `server.py` os importa
+- Decisão: cleanup profundo requer refactor dedicado das páginas legado que se auto-referenciam; não cabia em sessão segura
+- **Resultado:** -1 rota dead code, -1 lazy import, **zero quebra**
+
+### 5. Refatorar DirectedStudio.jsx — DOCUMENTADO (não executado)
+Arquivo de 4956 linhas é monolítico com risco alto de quebra em refactor dentro do tempo restante.
+**Plano documentado para sessão futura dedicada:**
+  1. Extrair `useProjectState` hook (estados de project, step, outputMode, projectBible)
+  2. Extrair `useAvatarManager` hook (40+ useState relacionados a avatars)
+  3. Quebrar em sub-componentes por step:
+     - `steps/Step0_Projects.jsx` (lista/criar/abrir)
+     - `steps/Step1_Briefing.jsx`
+     - `steps/Step2_Screenplay.jsx`
+     - `steps/Step3_Storyboard.jsx`
+     - `steps/Step4_Dialogues.jsx`
+     - `steps/Step5_Production.jsx` (vídeos + exports)
+  4. Manter `DirectedStudio.jsx` como orchestrator (<500 linhas), apenas roteando steps
+  5. Testar cada step isoladamente após extração
+  6. Medir re-render performance antes/depois (React DevTools profiler)
+
+### Validação final
+- ✅ Lint JS: No issues (AvatarLibraryModalV2, AgentsPage, SynergyBadge, StudioPage, DirectedStudio, App.js)
+- ✅ Todos os 8 módulos Python importam sem erro
+- ✅ `/api/health` HTTP 200
+- ✅ Screenshot final `/agents` em Light Mode: renderiza perfeitamente com mentalidades + 8 mestres video + pipeline livro
+- ✅ `bible_rag.py`: 3 queries de teste retornam resultados corretos com scores TF-IDF
+- ✅ Zero-breaking-changes preservado: todos os agentes/mindsets ainda `active: false` por default
+
+### Arquivos modificados
+- `memory/agents/sound_designer_agent.json` + 7 em `memory/agents/book/*.json` (seed real)
+- `memory/agents/researcher_agent.json` + `quality_validator_agent.json` (guia narrativo)
+- `backend/core/bible_rag.py` — reescrito (326 linhas, 15 passagens, TF-IDF)
+- `frontend/src/components/pipeline/AvatarLibraryModalV2.jsx` — 11 fixes light mode
+- `frontend/src/App.js` — removido /analytics + lazy import
+
+
+
 ## 2026-04-21 (Session 13e — Sprint 1+2 Autônomo: Wiring completo + Sinergia)
 
 ### Sprint 1 — Wiring runtime dos agentes na pipeline (concluído)

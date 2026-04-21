@@ -65,7 +65,6 @@ const AgentConfig = React.lazy(() => import('./pages/AgentConfig'));
 const CRM = React.lazy(() => import('./pages/CRM'));
 const LeadDetail = React.lazy(() => import('./pages/LeadDetail'));
 const CampaignBuilder = React.lazy(() => import('./pages/CampaignBuilder'));
-const Analytics = React.lazy(() => import('./pages/Analytics'));
 const SettingsPage = React.lazy(() => import('./pages/Settings'));
 const ChannelConnection = React.lazy(() => import('./pages/ChannelConnection'));
 const HandoffHuman = React.lazy(() => import('./pages/HandoffHuman'));
@@ -140,7 +139,6 @@ function App() {
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/studio/agents" element={<AgentsPage />} />
             <Route path="/crm" element={<CRM />} />
-            <Route path="/analytics" element={<Analytics />} />
             <Route path="/marketing" element={<Marketing />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/pricing" element={<Pricing />} />
