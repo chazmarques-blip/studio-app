@@ -61,6 +61,7 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - **Project type filters** in Studio page: Tudo / Vídeos / Livros / Híbridos (Session 6)
 - **Hybrid project navigation banner** — DirectedStudio shows "Ver livro" button for output_mode='both' (Session 6)
 - **DirectedStudio Refactor Fase 1** (2026-04-21): Extracted PipelineTrackerInline + SortableSceneWrapper to `/app/frontend/src/components/pipeline/`; removed dead code `_calcProgress`; file reduced from 4987 → 4606 lines (−381 lines). 100% passing in iteration_141.
+- **Active Agent Live Feedback** (2026-04-21): Real-time "thinking" indicator. Backend `agents_activity.py` + endpoint `GET /api/studio/projects/{id}/active-agent`. Frontend `ActiveAgentIndicator.jsx` (2s polling, animated Brain badge with master reference + thinking dots + elapsed timer). Instrumented: screenwriter, director, continuity video (Thelma Schoonmaker), continuity book (Glen Keane), book factory illustration plan (Mary Blair). 11/11 backend tests passing in iteration_142.
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123

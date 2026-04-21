@@ -1,5 +1,44 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session — Feedback Visual ao Vivo de Agentes)
+
+### Requisito do usuário
+Mostrar em tempo real qual agente/master está "pensando" durante geração (SynergyBadge + pipeline live).
+
+### O que foi implementado
+
+**1. Backend — `agents_activity.py` (novo módulo)**
+- `set_active_agent(tenant_id, project_id, agent_id, action, meta)` — grava `project.active_agent` + anexa entry no `project.agent_timeline` (deduplica consecutivos, cap 20 entries, flush_now=True)
+- `clear_active_agent(tenant_id, project_id)` — limpa o marcador
+- `GET /api/studio/projects/{id}/active-agent` — retorna `{active_agent, timeline}` enriquecido com `name` + `master_reference` do Agent Registry; auto-expira marcadores >10min (safety net)
+- Falhas totalmente silenciosas (zero breakage em pipelines)
+
+**2. Instrumentação de pipelines (call sites)**
+- `screenwriter.py` → `screenwriter_agent` · "Escrevendo roteiro…"
+- `director.py` → `orchestrator_agent` · "Diretor revisando cenas…"
+- `continuity_audit.py` → `consistency_checker_agent` (Thelma Schoonmaker) · "Auditando continuidade…"
+- `continuity_audit.py` → `visual_continuity_checker_book_agent` (Glen Keane) · "Auditando continuidade visual do livro…"
+- `book_factory.py` → `picturebook_designer_agent` (Mary Blair) · "Planejando ilustrações…"
+- Ao finalizar, cada pipeline seta `active_agent=None`
+
+**3. Frontend — `ActiveAgentIndicator.jsx` (novo componente)**
+- Polling 2s via axios (usa auth global configurada no `AuthContext`)
+- Badge animado: Brain icon pulsante + ring de ping + nome do agente + badge laranja com master + dots de thinking + timer elapsed ("12s", "1m 30s")
+- Variante `compact` (pill) para headers
+- Silent quando `active_agent === null`
+- Animação sheen gradient custom via @keyframes inline
+- Data-testids: `active-agent-indicator`, `active-agent-name`, `active-agent-elapsed`, `active-agent-indicator-compact`
+
+**4. Wiring no frontend**
+- `DirectedStudio.jsx` renderiza indicador no topo da área de trabalho (step >= 1)
+- `BookStudio.jsx` renderiza indicador acima do pipeline banner
+
+### Testes
+- Manual via curl (3 polls consecutivos durante audit real): mostrou `"Verificador de Consistência (Thelma Schoonmaker) — Auditando continuidade…"` ✅
+- Testing Agent iteration_142: Backend 11/11 tests passed, Frontend integration verified, zero regressões.
+
+
+
 ## 2026-04-21 (Session — Refactor DirectedStudio.jsx Fase 1)
 
 ### Requisito do usuário
