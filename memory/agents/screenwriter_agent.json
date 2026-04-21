@@ -50,5 +50,7 @@
       "temperature": 0.75,
       "min_quality_score": 85
     }
-  ]
+  ],
+  "master_reference": "Aaron Sorkin",
+  "master_bio": "Roteirista americano, Oscar por The Social Network. Mestre em estrutura de três atos, ritmo dialógico e densidade de ideias."
 }

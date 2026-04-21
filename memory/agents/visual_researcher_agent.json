@@ -35,5 +35,7 @@
   "updated_at": "2025-12-29",
   "active": false,
   "temperature": 0.7,
-  "model": "claude-sonnet-4-5"
+  "model": "claude-sonnet-4-5",
+  "master_reference": "Roger Deakins",
+  "master_bio": "Cinematógrafo britânico, duas vezes Oscar (1917, Blade Runner 2049). Mestre em composição visual, iluminação natural e paleta emocional."
 }

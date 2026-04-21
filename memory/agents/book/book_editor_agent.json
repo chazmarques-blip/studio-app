@@ -30,5 +30,7 @@
   "created_at": "2026-04-18",
   "active": false,
   "temperature": 0.7,
-  "model": "claude-sonnet-4-5"
+  "model": "claude-sonnet-4-5",
+  "master_reference": "Max Perkins",
+  "master_bio": "Editor americano lendário da Scribner's. Editou Hemingway, Fitzgerald, Wolfe. Padrão-ouro em consistência narrativa e voz autoral."
 }

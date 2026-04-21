@@ -44,5 +44,7 @@
   "updated_at": "2025-12-29",
   "active": false,
   "temperature": 0.7,
-  "model": "claude-sonnet-4-5"
+  "model": "claude-sonnet-4-5",
+  "master_reference": "Quentin Tarantino",
+  "master_bio": "Roteirista/diretor americano. Reconhecido por diálogos em camadas, subtexto, ritmo cultural e pop references naturais."
 }

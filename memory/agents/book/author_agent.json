@@ -34,5 +34,7 @@
   "created_at": "2026-04-18",
   "active": false,
   "temperature": 0.7,
-  "model": "claude-sonnet-4-5"
+  "model": "claude-sonnet-4-5",
+  "master_reference": "Neil Gaiman",
+  "master_bio": "Autor britânico, multi-gênero (American Gods, Sandman, Coraline). Storytelling acessível, rico em mitologia, com voz autoral inconfundível."
 }

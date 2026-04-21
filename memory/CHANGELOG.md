@@ -1,5 +1,82 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session 13d — Mentalidades Globais + Nomes de Mestres + Playground)
+
+### 3 features em uma arquitetura coesa
+
+#### 1. Mentalidades Globais por Categoria
+Filosofia macro do estúdio aplicada a TODOS os agentes daquela pipeline simultaneamente.
+
+- **Arquivo:** `/app/memory/agents/_mindsets.json` (3 categorias: video, book, audio)
+- **Default:** `active: false` em todas → comportamento atual preservado
+- **Endpoints:**
+  - `GET /api/studio/agents/mindsets` — lista as 3
+  - `GET /api/studio/agents/mindsets/{category}` — uma específica
+  - `PUT /api/studio/agents/mindsets/{category}` — atualiza com edit_history
+- **Conteúdo seed (editável pelo usuário):**
+  - Vídeo: 6 princípios cinematográficos (emoção antes de técnica, economia narrativa Hitchcock/Miyazaki, subtexto, etc.)
+  - Livro: 6 princípios editoriais (livro como objeto, voz autoral, precisão tipográfica Tschichold/Bringhurst, etc.)
+  - Áudio: 6 princípios sonoros (som é 50%, silêncio é ferramenta, tema = identidade Zimmer/Williams, etc.)
+- **Runtime:** `resolve_agent_prompt(agent_id, fallback)` agora prepends a mentalidade da categoria se ativa: `[MENTALIDADE] + --- + [PROMPT DO AGENTE]`
+
+#### 2. Nomes de Mestres Mundiais
+Cada agente agora tem `master_reference` (mestre do mundo real) + `master_bio` (contexto do por quê):
+
+- **Vídeo (8):**
+  - researcher → David McCullough (historiador, 2× Pulitzer)
+  - visual_researcher → Roger Deakins (cinematógrafo, 2 Oscars)
+  - orchestrator → Kathleen Kennedy (produtora Lucasfilm)
+  - screenwriter → Aaron Sorkin (Oscar — The Social Network)
+  - dialogue_writer → Quentin Tarantino (diálogos icônicos)
+  - narrator → Ken Burns (documentarista)
+  - quality_validator → Christopher Nolan (diretor)
+  - consistency_checker → Thelma Schoonmaker (editora, 3 Oscars)
+- **Livro (8):**
+  - author → Neil Gaiman (storyteller versátil)
+  - book_editor → Max Perkins (editor de Hemingway/Fitzgerald)
+  - proofreader → Mary Norris (The New Yorker, "Comma Queen")
+  - art_director → Chip Kidd (designer Knopf)
+  - cover_designer → Peter Mendelsund (capista Kafka/Joyce)
+  - illustrator → Hayao Miyazaki (Studio Ghibli)
+  - layout_designer → Jan Tschichold (tipografia clássica)
+  - preflight → Gerhard Steidl (Steidl Verlag)
+- **Áudio (1):**
+  - sound_designer → Hans Zimmer (compositor/sound designer)
+
+UI mostra o nome do mestre em destaque com ícone Award 🏆 + função como subtitle + bio no modal de edição.
+
+#### 3. Playground por Agente
+Tab "Playground" no modal de edição permite testar o prompt sem salvar.
+
+- **Endpoint:** `POST /api/studio/agents/playground`
+  - Body: `{agent_id, system_prompt, user_input, temperature, include_mindset, mindset_prompt}`
+  - Resposta: `{output, agent_id, category, prompt_length, mindset_applied}`
+- **Usa Emergent LLM Key** via `_call_claude_sync` (já integrado no _shared.py)
+- **Checkbox "Aplicar Mentalidade Global"** para testar com/sem a filosofia da categoria
+- **Usa o prompt não-salvo** do editor → iteração rápida antes de commit
+- Validado via curl — Aaron Sorkin gera diálogo cinematográfico real
+
+### Arquivos modificados/criados
+- `memory/agents/_mindsets.json` — NOVO, 3 mentalidades seed (inativas)
+- `memory/agents/**/*.json` × 17 — atualizadas com `master_reference` + `master_bio`
+- `backend/routers/studio/agents_registry.py` — 3 novos endpoints (mindsets × 2 + playground), `resolve_agent_prompt` agora concatena mindset+prompt, skip `_*.json` meta files
+- `frontend/src/pages/AgentsPage.jsx` — reescrito (600 linhas): MindsetCard, AgentEditor com tabs Editar/Playground, MindsetEditor modal
+
+### Testes
+- ✅ Lint JS: No issues
+- ✅ `GET /api/studio/agents/mindsets` → 3 categorias retornadas
+- ✅ `GET /api/studio/agents/registry/screenwriter_agent` → master_reference "Aaron Sorkin", master_bio presente
+- ✅ `POST /api/studio/agents/playground` → 200, output real do Claude com diálogos cinematográficos
+- ✅ Screenshot Agents page: cards com nomes de mestres + mentalidade card no topo de cada seção
+- ✅ Screenshot Mindset editor: system_prompt completo com 6 princípios + toggle ativar
+- ✅ Screenshot Playground tab: textarea, checkbox mindset, botão Executar
+
+### Zero-Breaking-Changes garantido
+- Todos os 17 agentes + 3 mindsets com `active: false` por default
+- `resolve_agent_prompt()` retorna fallback hardcoded quando nada está ativo → pipeline comportamento idêntico ao anterior
+- Usuário opt-in explicitamente via toggle na UI
+
+
 ## 2026-04-21 (Session 13c — Agents Registry: UI + Runtime Wiring)
 
 ### Objetivo do usuário

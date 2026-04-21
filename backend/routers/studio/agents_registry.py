@@ -14,6 +14,7 @@ from datetime import datetime
 
 AGENTS_DIR = "/app/memory/agents"
 BOOK_AGENTS_DIR = "/app/memory/agents/book"
+MINDSETS_FILE = "/app/memory/agents/_mindsets.json"
 
 # ─── Category map ─────────────────────────────────────────────
 # Explicit mapping — keeps UI deterministic even if folders change
@@ -64,6 +65,9 @@ async def list_studio_agents(user=Depends(get_current_user)):
         for fname in sorted(os.listdir(AGENTS_DIR)):
             if not fname.endswith(".json"):
                 continue
+            # Skip meta/index files (mindsets, compositions)
+            if fname.startswith("_") or fname in ("agent_compositions.json",):
+                continue
             fpath = os.path.join(AGENTS_DIR, fname)
             data = _load_agent_file(fpath)
             if not data:
@@ -79,6 +83,7 @@ async def list_studio_agents(user=Depends(get_current_user)):
                 "active": data.get("active", True),
                 "updated_at": data.get("updated_at"),
                 "model": data.get("model", "claude-sonnet-4-5"),
+                "master_reference": data.get("master_reference"),
             })
 
     # Scan book subfolder
@@ -104,6 +109,7 @@ async def list_studio_agents(user=Depends(get_current_user)):
                 "active": data.get("active", True),
                 "updated_at": data.get("updated_at"),
                 "model": data.get("model", "claude-sonnet-4-5"),
+                "master_reference": data.get("master_reference"),
             })
 
     # Sort: category (video → book → audio) then phase then name
@@ -207,29 +213,183 @@ async def rollback_agent(agent_id: str, body: Dict = Body(default={}), user=Depe
 
 
 # ─── Runtime helper for pipeline routers ──────────────────────
+def _load_mindsets() -> dict:
+    try:
+        if not os.path.exists(MINDSETS_FILE):
+            return {}
+        with open(MINDSETS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f) or {}
+    except Exception as e:
+        logger.warning(f"mindsets load failed: {e}")
+        return {}
+
+
+def _get_agent_category(agent_id: str) -> Opt[str]:
+    path = _resolve_agent_path(agent_id)
+    if not path:
+        return None
+    return _categorize(agent_id, path)
+
+
+def resolve_category_mindset(category: str) -> Opt[str]:
+    """Returns the global mindset system_prompt for a category if active, else None."""
+    try:
+        mindsets = _load_mindsets()
+        m = mindsets.get(category) or {}
+        if m.get("active") and isinstance(m.get("system_prompt"), str) and m["system_prompt"].strip():
+            return m["system_prompt"]
+    except Exception as e:
+        logger.warning(f"resolve_category_mindset({category}) failed: {e}")
+    return None
+
+
 def resolve_agent_prompt(agent_id: str, fallback: str) -> str:
     """
-    Returns the JSON-registry system_prompt if present AND active,
-    otherwise returns the hardcoded fallback — ensuring zero breakage.
+    Returns the final system prompt to feed the LLM, combining (in this order):
+      1. Category Mindset (if active)
+      2. Agent's custom system_prompt (if active) OR the hardcoded fallback
 
-    Usage in any pipeline router:
+    All layers are optional — the function is defensive and ALWAYS returns a non-empty
+    string (fallback at minimum), ensuring pipeline never breaks.
+
+    Usage in pipeline routers:
         from .agents_registry import resolve_agent_prompt
         HARDCODED = "Você é um roteirista..."
         prompt = resolve_agent_prompt("screenwriter_agent", fallback=HARDCODED)
     """
     try:
+        # Layer 1: resolve the agent's own prompt
+        agent_prompt = fallback
         path = _resolve_agent_path(agent_id)
-        if not path:
-            return fallback
-        data = _load_agent_file(path)
-        if not data:
-            return fallback
-        if data.get("active") is False:
-            return fallback
-        prompt = data.get("system_prompt")
-        if not isinstance(prompt, str) or not prompt.strip():
-            return fallback
-        return prompt
+        if path:
+            data = _load_agent_file(path)
+            if data and data.get("active") is True:
+                p = data.get("system_prompt")
+                if isinstance(p, str) and p.strip():
+                    agent_prompt = p
+
+        # Layer 2: prepend category mindset if active
+        category = _get_agent_category(agent_id) or "video"
+        mindset = resolve_category_mindset(category)
+        if mindset:
+            return f"{mindset}\n\n---\n\n{agent_prompt}"
+        return agent_prompt
     except Exception as e:
         logger.warning(f"resolve_agent_prompt({agent_id}) failed, using fallback: {e}")
         return fallback
+
+
+# ─── Mindsets endpoints ───────────────────────────────────────
+@router.get("/agents/mindsets")
+async def list_mindsets(user=Depends(get_current_user)):
+    """List all category mindsets (video / book / audio)."""
+    mindsets = _load_mindsets()
+    return {"mindsets": mindsets, "categories": list(mindsets.keys())}
+
+
+@router.get("/agents/mindsets/{category}")
+async def get_mindset(category: str, user=Depends(get_current_user)):
+    mindsets = _load_mindsets()
+    m = mindsets.get(category)
+    if not m:
+        raise HTTPException(status_code=404, detail=f"Mindset not found: {category}")
+    return {"mindset": m}
+
+
+@router.put("/agents/mindsets/{category}")
+async def update_mindset(
+    category: str,
+    body: Dict,
+    user=Depends(get_current_user)
+):
+    """Update a category mindset. Appends previous state to edit_history."""
+    mindsets = _load_mindsets()
+    if category not in mindsets:
+        raise HTTPException(status_code=404, detail=f"Mindset not found: {category}")
+
+    prev = mindsets[category]
+    history = prev.get("edit_history", [])
+    history.append({
+        "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "by": (user.get("email") if isinstance(user, dict) else getattr(user, "email", None)) or "unknown",
+        "system_prompt": prev.get("system_prompt"),
+        "temperature": prev.get("temperature"),
+    })
+    history = history[-20:]
+
+    merged = {**prev, **body}
+    merged["id"] = prev.get("id", f"mindset_{category}")
+    merged["category"] = category
+    merged["edit_history"] = history
+    merged["updated_at"] = datetime.utcnow().strftime("%Y-%m-%d")
+    mindsets[category] = merged
+
+    with open(MINDSETS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(mindsets, f, indent=2, ensure_ascii=False)
+
+    logger.info(f"Mindsets: Updated {category}")
+    return {"status": "updated", "category": category, "history_size": len(history)}
+
+
+# ─── Playground endpoint ──────────────────────────────────────
+class PlaygroundRequest(BaseModel):
+    agent_id: str
+    system_prompt: Opt[str] = None  # user's unsaved system prompt to test
+    user_input: str
+    temperature: Opt[float] = 0.7
+    include_mindset: Opt[bool] = True
+    mindset_prompt: Opt[str] = None  # if provided, overrides saved mindset for preview
+
+
+@router.post("/agents/playground")
+async def playground_test(req: PlaygroundRequest, user=Depends(get_current_user)):
+    """
+    Quick test of an agent prompt WITHOUT saving it.
+    Returns the LLM output using the provided (unsaved) system_prompt + user_input.
+    Uses Emergent LLM Key infrastructure.
+    """
+    if not req.user_input or not req.user_input.strip():
+        raise HTTPException(status_code=400, detail="user_input is required")
+
+    # Resolve the full prompt: custom mindset (or saved) + custom agent prompt (or saved)
+    category = _get_agent_category(req.agent_id) or "video"
+    agent_prompt = req.system_prompt
+    if not agent_prompt:
+        # Fallback to saved prompt
+        path = _resolve_agent_path(req.agent_id)
+        if path:
+            data = _load_agent_file(path) or {}
+            agent_prompt = data.get("system_prompt", "")
+    agent_prompt = agent_prompt or "You are a helpful assistant."
+
+    final_prompt = agent_prompt
+    if req.include_mindset:
+        mindset = req.mindset_prompt
+        if not mindset:
+            mindset = resolve_category_mindset(category) or ""
+            if not mindset:
+                # Even if not active, use saved mindset for preview
+                m = _load_mindsets().get(category) or {}
+                mindset = m.get("system_prompt", "")
+        if mindset and mindset.strip():
+            final_prompt = f"{mindset}\n\n---\n\n{agent_prompt}"
+
+    # Call Claude via emergentintegrations (already used in _shared)
+    try:
+        output = await asyncio.to_thread(
+            _call_claude_sync,
+            final_prompt,
+            req.user_input,
+            3000  # max_tokens for playground (keep snappy)
+        )
+        return {
+            "output": output or "",
+            "agent_id": req.agent_id,
+            "category": category,
+            "prompt_length": len(final_prompt),
+            "mindset_applied": bool(req.include_mindset and (req.mindset_prompt or resolve_category_mindset(category))),
+        }
+    except Exception as e:
+        logger.error(f"Playground error for {req.agent_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"LLM call failed: {str(e)[:200]}")
+

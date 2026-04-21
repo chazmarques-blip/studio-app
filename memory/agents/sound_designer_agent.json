@@ -33,5 +33,7 @@
   "updated_at": "2025-12-29",
   "active": false,
   "temperature": 0.7,
-  "model": "claude-sonnet-4-5"
+  "model": "claude-sonnet-4-5",
+  "master_reference": "Hans Zimmer",
+  "master_bio": "Compositor alemão. Oscar, 2 Grammys. Mestre em trilha sonora cinematográfica (Dune, Interstellar, The Dark Knight, Gladiator), sound design temático."
 }

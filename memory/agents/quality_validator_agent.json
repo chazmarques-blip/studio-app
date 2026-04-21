@@ -48,5 +48,7 @@
   "updated_at": "2025-12-29",
   "active": false,
   "temperature": 0.7,
-  "model": "claude-sonnet-4-5"
+  "model": "claude-sonnet-4-5",
+  "master_reference": "Christopher Nolan",
+  "master_bio": "Cineasta britânico. Padrão implacável de qualidade narrativa, consistência de regras internas e ambição cinematográfica."
 }
