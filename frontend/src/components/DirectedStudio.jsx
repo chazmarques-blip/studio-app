@@ -17,6 +17,7 @@ import { PostProduction } from './PostProduction';
 import { StoryboardEditor } from './StoryboardEditor';
 import { DialogueEditor } from './DialogueEditor';
 import { AvatarLibraryModalV2 } from './pipeline/AvatarLibraryModalV2';
+import { SynergyBadge } from './pipeline/SynergyBadge';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
 
@@ -1940,6 +1941,10 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   return (
     <div className="space-y-3 px-4 md:px-6 lg:px-8" data-testid="directed-studio">{/* Added responsive padding */}
+      {/* Dream Team — Agents/Mindsets ativos para este tipo de projeto */}
+      {step >= 1 && projectId && (
+        <SynergyBadge category={outputMode === 'book' ? 'book' : 'video'} />
+      )}
       {/* Hybrid Project Banner — when output_mode === 'both', offer direct jump to BookStudio */}
       {step >= 1 && outputMode === 'both' && projectId && (
         <div

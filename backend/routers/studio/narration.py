@@ -582,6 +582,13 @@ Age: {char.get('age', '?')}
 Story: {project.get('briefing', '')[:300]}
 Language of the project: {LANG_NAMES.get(lang, lang)}"""
 
+    # 🔗 Registry override — Hans Zimmer for voice casting
+    try:
+        from .agents_registry import resolve_agent_prompt
+        system_prompt = resolve_agent_prompt("sound_designer_agent", fallback=system_prompt)
+    except Exception as _e:
+        logger.warning(f"Narration single-voice: registry override failed: {_e}")
+
     try:
         voice_description = _call_claude_sync(system_prompt, char_info, max_tokens=500)
         voice_description = voice_description.strip().strip('"').strip("'")
@@ -839,6 +846,13 @@ CHARACTERS TO CAST:
 {char_list}
 
 Design the PERFECT voice for each character. Make each voice UNIQUE and INSTANTLY recognizable."""
+
+    # 🔗 Registry override — Hans Zimmer for voice casting
+    try:
+        from .agents_registry import resolve_agent_prompt
+        system_prompt = resolve_agent_prompt("sound_designer_agent", fallback=system_prompt)
+    except Exception as _e:
+        logger.warning(f"Narration voice-casting: registry override failed: {_e}")
 
     try:
         result = _call_claude_sync(system_prompt, user_prompt, max_tokens=4000)

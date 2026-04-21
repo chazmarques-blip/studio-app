@@ -23,6 +23,14 @@ from fastapi import BackgroundTasks
 import json
 import asyncio
 import io
+
+# 🔗 Agents Registry override (zero-breaking: fallback to hardcoded if inactive)
+def _rsys(agent_id: str, fallback: str) -> str:
+    try:
+        from .agents_registry import resolve_agent_prompt
+        return resolve_agent_prompt(agent_id, fallback=fallback)
+    except Exception:
+        return fallback
 import re as _re
 import tempfile as _tempfile
 
@@ -332,7 +340,7 @@ RETURN ONLY VALID JSON:
 
     try:
         raw = (await _call_claude_async(
-            "You are a professional literary author. Return only valid JSON.",
+            _rsys("author_agent", "You are a professional literary author. Return only valid JSON."),
             prompt,
             max_tokens=4000,
         )).strip()
@@ -439,7 +447,7 @@ Begin with "## {ch_meta.get('title')}" on the first line.
 
     try:
         prose = (await _call_claude_async(
-            f"You are a professional literary author writing in {lang_full}.",
+            _rsys("author_agent", f"You are a professional literary author writing in {lang_full}."),
             prompt,
             max_tokens=8000,
         )).strip()
@@ -523,7 +531,7 @@ Use `page_number` as a UNIQUE integer id across the whole book (1, 2, 3, 4... ac
 
     try:
         raw = (await _call_claude_async(
-            "You are an Editorial Art Director. Return only valid JSON.",
+            _rsys("art_director_editorial_agent", "You are an Editorial Art Director. Return only valid JSON."),
             prompt,
             max_tokens=4000,
         )).strip()
@@ -940,7 +948,7 @@ Return ONLY JSON:
 """
         try:
             raw = (await _call_claude_async(
-                f"You are a senior children's book editor. Output strictly valid JSON in {lang}. Preserve the chapter structure; only improve quality.",
+                _rsys("book_editor_agent", f"You are a senior children's book editor. Output strictly valid JSON in {lang}. Preserve the chapter structure; only improve quality."),
                 prompt,
                 max_tokens=6000,
             )).strip()
@@ -1041,7 +1049,7 @@ Keep existing page_number ids where possible. For NEW items add new unique ids (
 """
     try:
         raw = (await _call_claude_async(
-            f"You are a senior art director. Output strictly valid JSON in {lang}.",
+            _rsys("art_director_editorial_agent", f"You are a senior art director. Output strictly valid JSON in {lang}."),
             prompt,
             max_tokens=8000,
         )).strip()
@@ -1506,7 +1514,7 @@ IMPORTANT:
 """
         try:
             raw = (await _call_claude_async(
-                "You are a world-class book designer. Output strictly valid JSON.",
+                _rsys("layout_designer_agent", "You are a world-class book designer. Output strictly valid JSON."),
                 prompt,
                 max_tokens=4000,
             )).strip()
@@ -1618,7 +1626,7 @@ If the plan is already perfect, return the same blocks with critique=["no issues
 """
         try:
             raw = (await _call_claude_async(
-                f"You are a senior pre-press typographic reviewer. Output strictly valid JSON in {lang}.",
+                _rsys("preflight_agent", f"You are a senior pre-press typographic reviewer. Output strictly valid JSON in {lang}."),
                 prompt,
                 max_tokens=4500,
             )).strip()
@@ -2410,7 +2418,7 @@ Return ONLY valid JSON with this EXACT structure:
 
     try:
         raw = (await _call_claude_async(
-            "You are a professional Editorial Art Director. Return only valid JSON with all fields.",
+            _rsys("art_director_editorial_agent", "You are a professional Editorial Art Director. Return only valid JSON with all fields."),
             prompt,
             max_tokens=2500,
         )).strip()
@@ -2613,7 +2621,7 @@ Return ONLY JSON:
 """
     try:
         raw = (await _call_claude_async(
-            "You are a strict Editor of Consistency. Return only valid JSON.",
+            _rsys("book_editor_agent", "You are a strict Editor of Consistency. Return only valid JSON."),
             prompt,
             max_tokens=3000,
         )).strip()

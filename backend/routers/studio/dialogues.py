@@ -347,6 +347,18 @@ Characters: {', '.join(chars_in)}
 
 Write a BEAUTIFUL storybook passage that captures this moment."""
 
+        # 🔗 Registry override (Quentin Tarantino for dubbed, Ken Burns for narrated, Neil Gaiman for book mode)
+        try:
+            from .agents_registry import resolve_agent_prompt
+            if req.mode == "dubbed":
+                system = resolve_agent_prompt("dialogue_writer_agent", fallback=system)
+            elif req.mode == "narrated":
+                system = resolve_agent_prompt("narrator_agent", fallback=system)
+            else:
+                system = resolve_agent_prompt("author_agent", fallback=system)
+        except Exception as _e:
+            logger.warning(f"Dialogues: registry override failed, using fallback: {_e}")
+
         try:
             import litellm
             api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("EMERGENT_LLM_KEY", "")

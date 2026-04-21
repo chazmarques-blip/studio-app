@@ -183,9 +183,17 @@ Language: {lang}
 
 Return JSON with your expert voice recommendation."""
     
+    # 🔗 Registry override — Hans Zimmer
+    _system = SOUND_DESIGNER_SYSTEM_PROMPT
+    try:
+        from .agents_registry import resolve_agent_prompt
+        _system = resolve_agent_prompt("sound_designer_agent", fallback=_system)
+    except Exception as _e:
+        logger.warning(f"SoundDesign: registry override failed: {_e}")
+
     try:
         result = await _call_claude_async(
-            SOUND_DESIGNER_SYSTEM_PROMPT,
+            _system,
             user_prompt,
             max_tokens=1500,
             timeout=90

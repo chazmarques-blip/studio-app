@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { DirectedStudio } from '../components/DirectedStudio';
 import { AvatarModal } from '../components/pipeline/AvatarModal';
 import { AvatarLibraryModalV2 } from '../components/pipeline/AvatarLibraryModalV2';
+import { SynergyBadge } from '../components/pipeline/SynergyBadge';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 
@@ -1578,6 +1579,7 @@ export default function StudioPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <SynergyBadge category="video" compact />
             <button
               onClick={() => { setAvatarPreviewUrl(null); setShowGlobalLibrary(true); }}
               className="hidden sm:inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-medium text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-100 dark:hover:bg-violet-500/20 border border-violet-100 dark:border-violet-500/20 transition"

@@ -377,16 +377,18 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
             system_template = SCREENWRITER_SYSTEM_SORA
             logger.info(f"Screenwriter [{project_id}]: Sora - ~{num_scenes} scenes × 12s")
         
-        system = system_template.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang)).replace("{target_duration}", str(target_duration)).replace("{num_scenes}", str(num_scenes))
-        
         # 🔗 Agents Registry: allow override from /app/memory/agents/screenwriter_agent.json
         # If the JSON has active:true AND a valid system_prompt → it replaces the hardcoded template.
         # Otherwise the hardcoded template (fallback) is used — zero breakage.
         try:
             from .agents_registry import resolve_agent_prompt
-            system = resolve_agent_prompt("screenwriter_agent", fallback=system)
+            system = resolve_agent_prompt("screenwriter_agent", fallback=system_template)
         except Exception as _e:
             logger.warning(f"Screenwriter: registry override failed, using fallback: {_e}")
+            system = system_template
+
+        # Apply placeholder replacements AFTER registry override so both hardcoded and custom prompts support them
+        system = system.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang)).replace("{target_duration}", str(target_duration)).replace("{num_scenes}", str(num_scenes))
 
         # Auto-sync character library if not loaded yet
         character_library = project.get("character_library")

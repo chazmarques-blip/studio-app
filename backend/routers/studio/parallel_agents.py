@@ -137,7 +137,16 @@ def generate_screenplay_parallel(
     logger.info(f"ParallelScreenplay [{project_id}]: Phase 1 - Foundation agent generating structure")
     
     # Replace all template placeholders
-    system = system_template.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang)).replace("{target_duration}", str(target_duration_minutes)).replace("{num_scenes}", str(num_scenes_needed))
+    # 🔗 Registry override — Aaron Sorkin (screenwriter) for parallel foundation
+    try:
+        from .agents_registry import resolve_agent_prompt
+        system = resolve_agent_prompt("screenwriter_agent", fallback=system_template)
+    except Exception as _e:
+        logger.warning(f"ParallelAgents: registry override failed: {_e}")
+        system = system_template
+
+    # Apply placeholder replacements AFTER registry override
+    system = system.replace("{lang}", lang).replace("{lang_name}", LANG_FULL_NAMES.get(lang, lang)).replace("{target_duration}", str(target_duration_minutes)).replace("{num_scenes}", str(num_scenes_needed))
     
     # Add character library and audience guidelines to system prompt
     if character_library_text:
