@@ -13,7 +13,7 @@ const DEFAULT_AVATAR = 'https://static.prod-images.emergentagent.com/jobs/84603a
 
 function AppHeader() {
   const { user, signOut } = useAuth();
-  const { theme, toggle: toggleTheme } = useTheme();
+  const { theme, toggle: toggleTheme, forceLight } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
@@ -57,15 +57,17 @@ function AppHeader() {
       data-testid="app-header"
       style={{ fontFamily: "'Outfit', system-ui" }}
     >
-      {/* Theme toggle */}
-      <button
-        onClick={toggleTheme}
-        data-testid="header-theme-toggle"
-        className="h-8 w-8 rounded-md flex items-center justify-center text-gray-600 dark:text-[#A3A3B2] hover:bg-gray-100 dark:hover:bg-white/5 transition"
-        title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-      >
-        {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-      </button>
+      {/* Theme toggle — hidden while dark mode is only partially implemented */}
+      {!forceLight && (
+        <button
+          onClick={toggleTheme}
+          data-testid="header-theme-toggle"
+          className="h-8 w-8 rounded-md flex items-center justify-center text-gray-600 dark:text-[#A3A3B2] hover:bg-gray-100 dark:hover:bg-white/5 transition"
+          title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        >
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
+      )}
 
       {/* User Avatar */}
       <div className="relative" ref={profileRef}>

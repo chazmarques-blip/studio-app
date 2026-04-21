@@ -1,5 +1,33 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session — Fix: Dark/Light Mode Inconsistente)
+
+### Problema reportado
+Screenshot do usuário mostrando **sidebar dark purple** junto com **conteúdo principal branco** — visual "frankenstein" misturando os dois modos.
+
+### Causa raiz
+- `ThemeContext` permitia toggle entre dark/light e persistia em `localStorage.studiox_theme`
+- **Apenas** `Sidebar.jsx` e `AppLayout.jsx` (AppHeader) tinham variantes `dark:` implementadas
+- **Todo o resto** do app (DirectedStudio, StudioPage, BookStudio, BookEditorPage, AgentsPage, modais, etc.) usa cores hardcoded de light mode (`bg-white`, `bg-gray-50`, `text-gray-900`)
+- Quando usuário ativava dark mode → sidebar/header ficavam dark, mas todo o resto continuava branco → mistura visual
+
+### Fix
+- `ThemeContext.jsx`: adicionado flag `FORCE_LIGHT = true` que:
+  1. Sempre seta theme = 'light'
+  2. Força remoção da classe `dark` do `<html>` (limpa `localStorage.studiox_theme=dark` residual)
+  3. Desabilita `toggle()` e `set('dark')` (no-ops enquanto FORCE_LIGHT ativo)
+- `AppLayout.jsx`: botão Sun/Moon do theme toggle escondido quando `forceLight === true`
+
+### Reversão futura
+Quando dark mode estiver completamente implementado em todas as páginas (DirectedStudio, StudioPage, BookStudio, modais), basta setar `FORCE_LIGHT = false` em `ThemeContext.jsx` e o toggle volta automaticamente.
+
+### Verificação
+- Lint limpo em ambos os arquivos
+- Screenshot: mesmo com `localStorage.studiox_theme=dark` forçado, `<html>` não tem classe `dark` e botão de toggle não aparece
+- Sidebar agora consistente (light lavender `#FAF8FD`) em harmonia com conteúdo
+
+
+
 ## 2026-04-21 (Session — Bug Fix: Modal coberto pela Sidebar)
 
 ### Problema reportado
