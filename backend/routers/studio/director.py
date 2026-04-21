@@ -260,6 +260,11 @@ def _run_director_review_background(tenant_id: str, project_id: str):
     import asyncio
     
     try:
+        from .agents_activity import set_active_agent, clear_active_agent
+        set_active_agent(tenant_id, project_id, "orchestrator_agent", "Diretor revisando cenas…")
+    except Exception:
+        pass
+    try:
         settings, projects, project = _get_project(tenant_id, project_id)
         if not project:
             return
@@ -363,7 +368,8 @@ def _run_director_review_background(tenant_id: str, project_id: str):
         _update_project_field(tenant_id, project_id, {
             "director_review": review_result,
             "director_review_at": review_result["reviewed_at"],
-            "pipeline_phase": "director_done"
+            "pipeline_phase": "director_done",
+            "active_agent": None,
         })
         
         # Unify dialogue = dubbed_text after Director creates revised dialogues

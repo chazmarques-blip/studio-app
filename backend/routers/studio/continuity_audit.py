@@ -75,6 +75,12 @@ async def audit_video_continuity(project_id: str, tenant=Depends(get_current_ten
     if not scenes:
         raise HTTPException(status_code=400, detail="Project has no scenes to audit")
 
+    try:
+        from .agents_activity import set_active_agent
+        set_active_agent(tenant["id"], project_id, "consistency_checker_agent", "Auditando continuidade…")
+    except Exception:
+        pass
+
     char_bible = project.get("character_bible") or project.get("character_library") or {}
     loc_bible = project.get("location_bible", {}) or {}
     voice_casting = project.get("voice_casting", {}) or {}
@@ -135,6 +141,7 @@ async def audit_video_continuity(project_id: str, tenant=Depends(get_current_ten
         _update_project_field(tenant["id"], project_id, {
             "continuity_report": report,
             "continuity_status": {"last_score": report.get("score", 0), "audited_at": report["audited_at"]},
+            "active_agent": None,
         }, flush_now=True)
     except Exception as e:
         logger.warning(f"ContinuityAudit [{project_id}]: persist failed: {e}")
@@ -172,6 +179,12 @@ async def audit_book_visual_continuity(project_id: str, tenant=Depends(get_curre
 
     if not spreads:
         raise HTTPException(status_code=400, detail="Book has no spreads/illustrations to audit")
+
+    try:
+        from .agents_activity import set_active_agent
+        set_active_agent(tenant["id"], project_id, "visual_continuity_checker_book_agent", "Auditando continuidade visual do livro…")
+    except Exception:
+        pass
 
     audit_input = {
         "book_title": (book_bible.get("title") if isinstance(book_bible, dict) else None) or project.get("name", "Untitled"),
@@ -225,6 +238,7 @@ async def audit_book_visual_continuity(project_id: str, tenant=Depends(get_curre
     try:
         _update_project_field(tenant["id"], project_id, {
             "book_continuity_report": report,
+            "active_agent": None,
         }, flush_now=True)
     except Exception as e:
         logger.warning(f"BookVisualAudit [{project_id}]: persist failed: {e}")

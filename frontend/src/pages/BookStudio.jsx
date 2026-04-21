@@ -7,6 +7,7 @@ import {
   ChevronRight, ChevronLeft, RefreshCw, Loader2, AlertCircle, FileCheck, Users, Wand2, Save, X, MoreHorizontal,
 } from 'lucide-react';
 import PdfInlineViewer from '../components/PdfInlineViewer';
+import { ActiveAgentIndicator } from '../components/pipeline/ActiveAgentIndicator';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -639,6 +640,10 @@ export default function BookStudio() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Live "thinking" indicator — shows which agent/master is active */}
+        {projectId && (
+          <ActiveAgentIndicator projectId={projectId} enabled={true} />
+        )}
         {/* Auto-pipeline progress banner */}
         {bookState?.pipeline_running && (
           <div className="mb-6 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl p-5 shadow-lg" data-testid="pipeline-banner">

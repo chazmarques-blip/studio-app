@@ -1,0 +1,86 @@
+{
+  "summary": "Tested Active Agent Indicator feature (P1: Visual feedback durante geração). Backend: 11/11 tests passed. Frontend: Component integration verified via code review and partial UI testing. The ActiveAgentIndicator correctly shows agent name + master_reference + action + animated dots + elapsed time when an agent is active, and is silent when no agent is running.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/studio/avatars", "issue": "Returns 500 error intermittently (pre-existing, not related to active-agent feature)"},
+      {"endpoint": "/api/studio/companies", "issue": "Returns 500 error intermittently (pre-existing, not related to active-agent feature)"}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_active_agent.py",
+    "/app/test_reports/pytest/pytest_results_iteration142.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "✅ Backend: agents_activity.py correctly implements set_active_agent/clear_active_agent helpers with metadata enrichment",
+    "✅ Backend: GET /api/studio/projects/{id}/active-agent returns {active_agent, timeline} with proper structure",
+    "✅ Backend: Timeline capped at 20 entries internally, returns last 10 in API response",
+    "✅ Backend: Consecutive duplicate entries are deduplicated in timeline",
+    "✅ Backend: Auto-expire stale active_agent after 10 minutes (safety net)",
+    "✅ Backend: continuity_audit.py calls set_active_agent('consistency_checker_agent', 'Auditando continuidade…') at line 80",
+    "✅ Backend: continuity_audit.py calls set_active_agent('visual_continuity_checker_book_agent', 'Auditando continuidade visual do livro…') at line 185",
+    "✅ Backend: Both audit endpoints clear active_agent to null after completion",
+    "✅ Frontend: ActiveAgentIndicator.jsx polls every 2s via axios with auth",
+    "✅ Frontend: Component renders Brain icon, agent name, master badge (Award icon), action text, ThinkingDots animation, elapsed time",
+    "✅ Frontend: data-testid attributes present: active-agent-indicator, active-agent-name, active-agent-elapsed, active-agent-indicator-compact",
+    "✅ Frontend: DirectedStudio.jsx integrates ActiveAgentIndicator at line 1586 (step >= 1)",
+    "✅ Frontend: BookStudio.jsx integrates ActiveAgentIndicator at line 645",
+    "✅ Frontend: Indicator is silent (returns null) when active_agent is null - correct by design",
+    "✅ Agent registry: consistency_checker_agent has master_reference 'Thelma Schoonmaker'",
+    "✅ Agent registry: visual_continuity_checker_book_agent has master_reference 'Glen Keane'"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_active_agent.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "Code review verified - component integration correct"
+  },
+  "test_credentials": {
+    "email": "test@studiox.com",
+    "password": "studiox123"
+  },
+  "seed_data_creation": "None - used existing projects",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Active Agent Indicator feature is complete. Backend tests in /app/backend/tests/test_active_agent.py cover all endpoints. To visually test the indicator: (1) Login, (2) Open a video project in DirectedStudio, (3) Click 'Auditar Continuidade' button, (4) The indicator should appear showing 'Verificador de Consistência (Thelma Schoonmaker) — Auditando continuidade…' with animated dots and elapsed time. The indicator disappears when audit completes.",
+  "verified_features": [
+    "GET /api/studio/projects/{id}/active-agent returns {active_agent, timeline} ✅",
+    "POST /api/studio/projects/{id}/continuity-audit sets active_agent to consistency_checker_agent ✅",
+    "POST /api/studio/book/projects/{id}/visual-continuity-audit sets active_agent to visual_continuity_checker_book_agent ✅",
+    "set_active_agent/clear_active_agent helpers work correctly ✅",
+    "Agent metadata enrichment (name, master_reference) from registry ✅",
+    "Timeline capped at 20 entries with deduplication ✅",
+    "active_agent cleared to null after audit completes ✅",
+    "ActiveAgentIndicator component integrated in DirectedStudio.jsx (step >= 1) ✅",
+    "ActiveAgentIndicator component integrated in BookStudio.jsx ✅",
+    "Indicator silent when active_agent is null ✅",
+    "data-testid attributes present for testing ✅",
+    "Polling every 2s via axios with auth ✅"
+  ],
+  "backend_test_results": {
+    "test_file": "/app/backend/tests/test_active_agent.py",
+    "total_tests": 11,
+    "passed": 11,
+    "failed": 0,
+    "tests": [
+      "test_get_active_agent_endpoint_exists ✅",
+      "test_get_active_agent_returns_null_when_idle ✅",
+      "test_get_active_agent_404_for_invalid_project ✅",
+      "test_get_active_agent_timeline_capped_at_10 ✅",
+      "test_continuity_audit_sets_active_agent ✅",
+      "test_continuity_audit_adds_to_timeline ✅",
+      "test_book_visual_audit_endpoint_exists ✅",
+      "test_agent_metadata_enrichment ✅",
+      "test_timeline_no_consecutive_duplicates ✅",
+      "test_active_agent_requires_auth ✅",
+      "test_continuity_audit_requires_auth ✅"
+    ]
+  }
+}

@@ -563,7 +563,12 @@ Create the screenplay. Generate as many scenes and characters as the story NEEDS
         _update_project_field(tenant_id, project_id, {
             "pipeline_phase": "researcher_screenwriter"
         })
-        
+        try:
+            from .agents_activity import set_active_agent
+            set_active_agent(tenant_id, project_id, "screenwriter_agent", "Escrevendo roteiro…")
+        except Exception:
+            pass
+
         result = _call_claude_sync(system, user_prompt, max_tokens=8000)
         parsed = _parse_json(result)
 
@@ -742,6 +747,7 @@ IMPORTANT:
         project["status"] = "scripting"
         project["chat_status"] = "done"
         project["pipeline_phase"] = "screenwriter_done"
+        project["active_agent"] = None  # clear "thinking" indicator
         project["updated_at"] = datetime.now(timezone.utc).isoformat()
         n_scenes = len(project.get('scenes', []))
         n_chars = len(project.get('characters', []))

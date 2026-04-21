@@ -19,6 +19,7 @@ import { AvatarLibraryModalV2 } from './pipeline/AvatarLibraryModalV2';
 import { SynergyBadge } from './pipeline/SynergyBadge';
 import { ContinuityAuditModal } from './pipeline/ContinuityAuditModal';
 import { PipelineTrackerInline } from './pipeline/PipelineTrackerInline';
+import { ActiveAgentIndicator } from './pipeline/ActiveAgentIndicator';
 import { SortableSceneWrapper } from './pipeline/SortableSceneWrapper';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
@@ -1580,6 +1581,10 @@ export const DirectedStudio = memo(function DirectedStudio({
 
   return (
     <div className="space-y-3 px-4 md:px-6 lg:px-8" data-testid="directed-studio">{/* Added responsive padding */}
+      {/* Live indicator: "Aaron Sorkin está escrevendo…" — polls every 2s, silent when idle */}
+      {projectId && step >= 1 && (
+        <ActiveAgentIndicator projectId={projectId} enabled={true} />
+      )}
       {/* Dream Team — Agents/Mindsets ativos para este tipo de projeto */}
       {step >= 1 && projectId && (
         <>
@@ -2212,6 +2217,8 @@ export const DirectedStudio = memo(function DirectedStudio({
             ))}
             {chatLoading && (
               <div className="p-4" data-testid="chat-loading">
+                {/* Live "thinking" badge showing the active agent + master */}
+                <ActiveAgentIndicator projectId={projectId} enabled={chatLoading} />
                 {/* Enhanced Pipeline Visual Tracker */}
                 <PipelineTrackerInline 
                   lang={lang}

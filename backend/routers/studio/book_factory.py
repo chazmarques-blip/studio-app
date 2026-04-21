@@ -534,6 +534,11 @@ Use `page_number` as a UNIQUE integer id across the whole book (1, 2, 3, 4... ac
         # falling back to Chip Kidd (editorial art director) for other formats.
         is_picturebook = (brief.get('format_preset') in ('infantil_ilustrado', 'picturebook'))
         primary_agent = "picturebook_designer_agent" if is_picturebook else "art_director_editorial_agent"
+        try:
+            from .agents_activity import set_active_agent
+            set_active_agent(tenant["id"], project_id, primary_agent, "Planejando ilustrações…")
+        except Exception:
+            pass
         raw = (await _call_claude_async(
             _rsys(primary_agent, "You are an Editorial Art Director. Return only valid JSON."),
             prompt,
