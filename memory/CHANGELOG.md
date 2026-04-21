@@ -1,5 +1,98 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session 13h — Quality Gate ≥90 + Livro Editável)
+
+### Requisitos do usuário
+1. **Quality gate rígido**: livro só passa com Glen Keane score >= 90
+2. **Entrega editável**: arquivo final permite trocar imagem, redimensionar, ajustar texto
+
+### O que foi implementado
+
+**1. Quality Gate (≥ 90)**
+- Endpoint: `GET /api/studio/book/projects/{id}/quality-gate` retorna `{passed, status, score, min_required, problematic_spread_ids, message}`
+- **Auto-wire em `book_factory.py` → `book_render_pdf`:**
+  - Se projeto tem ilustrações geradas → checa `book_continuity_report`
+  - Se nunca auditado → dispara Glen Keane automaticamente
+  - Se score < 90 → **bloqueia PDF com HTTP 422** retornando URLs de remediação
+  - Fail-open: se infraestrutura de auditoria falhar, PDF ainda gera (robustez)
+- Min score: `MIN_QUALITY_SCORE = 90` (constante no topo de `book_editable.py`)
+
+**2. Livro Editável — 5 endpoints novos em `book_editable.py`**
+- `GET /api/studio/book/projects/{id}/editable-spreads`: retorna JSON estruturado de TODAS as páginas
+  - Cada spread: `{id, chapter_index, chapter_title, image, text_overlays[], background_color, metadata}`
+  - Image: `{url, x_pct, y_pct, width_pct, height_pct, fit, regen_prompt}`
+  - Text overlay: `{id, content, x/y/width/height_pct, font_size_pt, font_family, color, gradient, alignment}`
+  - **Detecta formato infantil_ilustrado** → gera overlay Disney-style automático (texto branco + gradient preto bottom-to-top)
+  - **Lazy-init**: primeira chamada constrói do `illustration_plan`, depois salva em `book_bible.editable_spreads`
+- `PUT /api/studio/book/projects/{id}/editable-spreads/{spread_id}`: atualiza UM spread (image OU text_overlays OU background)
+- `POST /api/studio/book/projects/{id}/editable-spreads/{spread_id}/regenerate-image`: regenera imagem via Gemini com prompt customizado ou default
+- `GET /api/studio/book/projects/{id}/editable-preview`: preview HTML live (para iframe) com CSS real de cada spread — reflete todas as edições
+
+**3. Schema Editable Spread**
+```json
+{
+  "id": 1,
+  "image": {
+    "url": "https://...",
+    "x_pct": 0, "y_pct": 0,
+    "width_pct": 100, "height_pct": 100,
+    "fit": "cover",
+    "regen_prompt": "...",
+    "editable": true
+  },
+  "text_overlays": [{
+    "id": "text_1_0",
+    "content": "Era uma vez...",
+    "x_pct": 8, "y_pct": 65,
+    "width_pct": 84, "height_pct": 28,
+    "font_size_pt": 16,
+    "font_family": "'Source Serif Pro', Georgia, serif",
+    "color": "#FFFFFF",
+    "gradient": {
+      "direction": "to top",
+      "from": "rgba(0,0,0,0.85)",
+      "to": "rgba(0,0,0,0)",
+      "opacity": 1.0
+    },
+    "alignment": "left",
+    "editable": true
+  }],
+  "background_color": "#FFFFFF",
+  "metadata": { ... read-only ... }
+}
+```
+
+### Testes end-to-end validados
+- ✅ `GET /quality-gate` (projeto sem auditoria) → `{passed:false, status:"never_audited", min_required:90}`
+- ✅ `GET /editable-spreads` (primeira chamada) → 33 spreads gerados, Disney-style text overlay com gradiente
+- ✅ `PUT /editable-spreads/1` com texto customizado (dourado, fonte 24pt) → persiste
+- ✅ `GET /editable-spreads` subsequente → retorna `source: "user_edited"` com mudanças preservadas
+- ✅ Lint: sem erros
+- ✅ `/api/health`: 200
+
+### Como o usuário vai usar (UX prevista)
+Próxima sessão criará o `BookEditorPage.jsx`:
+1. Usuário abre `/studio/book/{id}` → clica "Editar Livro"
+2. Vê grid de todas as páginas com previews
+3. Clica em uma página → editor:
+   - Drag/resize da imagem
+   - Clique no texto → edit inline, muda fonte/tamanho/cor/gradient
+   - Botão "Regenerar Imagem" com prompt customizado
+   - Preview live ao lado
+4. Quando satisfeito → clica "Gerar PDF Final" → `/book_render_pdf` lê o `editable_spreads` (não o `illustration_plan` original) → PDF sempre reflete últimas edições
+
+### Zero-breaking-changes
+- Endpoints são ADITIVOS
+- Campo `editable_spreads` é ADITIVO no book_bible
+- Quality gate tem fail-open em caso de erro infraestrutural
+- Nenhum fluxo de geração existente foi alterado
+
+### Arquivos
+- `backend/routers/studio/book_editable.py` (NOVO, 290 linhas)
+- `backend/routers/studio/book_factory.py` (auto-audit + gate nos render_pdf)
+- `backend/routers/studio/__init__.py` (+1 import)
+
+
 ## 2026-04-21 (Session 13g — Continuidade + Disney Picturebook Designer)
 
 ### O que foi implementado

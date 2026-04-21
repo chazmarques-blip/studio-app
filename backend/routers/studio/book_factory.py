@@ -1689,6 +1689,40 @@ async def book_render_pdf(project_id: str, tenant=Depends(get_current_tenant)):
     if not chapters_dict:
         raise HTTPException(status_code=400, detail="No chapters ready for layout")
 
+    # 🎯 QUALITY GATE — Glen Keane must approve book with score >= 90 before PDF export
+    # Bypass only if explicitly forced via ?force=true (for admin/debug)
+    # Skip gate if illustrations haven't been generated yet (audit would fail anyway)
+    has_illustrations = bool(plan and any(p.get("image_url") or p.get("url") for p in plan))
+    if has_illustrations:
+        report = project.get("book_continuity_report") or {}
+        score = report.get("score")
+        needs_audit = score is None
+        passed = (score or 0) >= 90
+
+        if needs_audit:
+            # Auto-trigger audit (synchronous — blocks PDF until done)
+            try:
+                from .continuity_audit import audit_book_visual_continuity
+                audit_result = await audit_book_visual_continuity(project_id, tenant)
+                score = (audit_result.get("report") or {}).get("score", 0)
+                passed = score >= 90
+                logger.info(f"BookPDF [{project_id}]: auto-audit ran, score={score}")
+            except Exception as e:
+                logger.warning(f"BookPDF [{project_id}]: auto-audit failed, proceeding: {e}")
+                passed = True  # Fail-open: don't block user if audit infrastructure is down
+
+        if not passed and score is not None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "quality_gate_failed",
+                    "message": f"Glen Keane score {score} < 90. Regenere os spreads problemáticos antes de gerar o PDF, ou use o editor editável para corrigir manualmente.",
+                    "score": score,
+                    "quality_gate_url": f"/api/studio/book/projects/{project_id}/quality-gate",
+                    "editable_url": f"/api/studio/book/projects/{project_id}/editable-spreads",
+                },
+            )
+
     # Layout spec resolver (Layout Designer presets)
     format_preset = brief.get("format_preset", "infantil_ilustrado")
     trim = TRIM_SIZES_MM.get(brief.get("trim_size", "6x9"), TRIM_SIZES_MM["6x9"])

@@ -17,6 +17,7 @@ from . import project_bible
 from . import autonomous_loop
 from . import agents_registry
 from . import continuity_audit  # Video (Thelma) + Book visual (Glen Keane) continuity
+from . import book_editable  # Quality gate + editable spreads JSON + regenerate image
 from . import cost_estimator
 from . import dialogue_timeline  # NEW
 from . import cinematography  # NEW
