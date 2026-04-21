@@ -29,7 +29,8 @@ export function AvatarLibraryModalV2({
   onCreateNew,
   avatarsCache = null,
   avatarsCacheLoaded = false,
-  lang = 'pt' 
+  lang = 'pt',
+  embedded = false
 }) {
   const [library, setLibrary] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -631,11 +632,17 @@ export function AvatarLibraryModalV2({
 
   return (
     <>
-      {/* Main Library Modal — respects sidebar on desktop (md:left-60) */}
-      <div className="fixed inset-y-0 right-0 left-0 md:left-60 z-[10000] bg-black/80 flex items-center justify-center p-4">
+      {/* Main Library — Modal (floating) or Embedded (inline page) */}
+      <div className={embedded
+        ? "w-full min-h-[calc(100vh-3rem)] bg-[#FAFAFC] dark:bg-[#0A0614]"
+        : "fixed inset-y-0 right-0 left-0 md:left-60 z-[10000] bg-black/80 flex items-center justify-center p-4"
+      }>
         <div 
           data-testid="avatar-library-modal" 
-          className="w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-white dark:bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl"
+          className={embedded
+            ? "w-full h-full flex flex-col"
+            : "w-full max-w-5xl rounded-2xl border border-[#8B5CF6]/20 bg-white dark:bg-[#0D0D0D] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl"
+          }
         >
           {/* Header */}
           <div className="px-5 py-3 border-b border-gray-200 dark:border-[#151515] flex items-center gap-3 shrink-0 bg-white dark:bg-gradient-to-r dark:from-[#0D0D0D] dark:to-[#1A1A1A]">
@@ -677,7 +684,7 @@ export function AvatarLibraryModalV2({
               <Plus size={14} />
               <span>Nova Pasta</span>
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#1A1A1A] transition">
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-[#1A1A1A] transition" title={embedded ? 'Voltar' : 'Fechar'}>
               <X size={18} className="text-gray-500 dark:text-[#999]" />
             </button>
           </div>
@@ -1182,12 +1189,14 @@ export function AvatarLibraryModalV2({
 
           {/* Footer Actions */}
           <div className="px-5 py-3 border-t border-gray-200 dark:border-[#151515] shrink-0 flex items-center gap-2 bg-gray-50 dark:bg-[#0A0A0A]">
-            <button 
-              onClick={onClose} 
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#333] text-sm text-gray-700 dark:text-[#999] hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-[#555] transition"
-            >
-              {L.close}
-            </button>
+            {!embedded && (
+              <button 
+                onClick={onClose} 
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-[#333] text-sm text-gray-700 dark:text-[#999] hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-[#555] transition"
+              >
+                {L.close}
+              </button>
+            )}
             
             {selected.size > 0 && (
               <>

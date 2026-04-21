@@ -1,5 +1,35 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session 13b — Galeria unificada como página dedicada)
+
+### Problema reportado pelo usuário
+> "Esse layout está quebrado. Está aparecendo uma outra página no fundo quando clicamos em 'Personagens'. Temos que alinhar para que fique todo no mesmo padrão."
+
+### Causa raiz
+Ao clicar em "Personagens" no sidebar, a rota `/studio?gallery=1` abria o `AvatarLibraryModalV2` como **modal flutuante** sobre a página Projetos (Projects list ficava visível atrás com dimmer preto). Isso quebrava a consistência visual com as outras rotas do sidebar (Projetos, Agentes, Configurações), que renderizam como páginas normais.
+
+### Fix: Modo `embedded` no AvatarLibraryModalV2
+- Novo prop `embedded` (default `false`) em `AvatarLibraryModalV2`.
+- Quando `embedded=true`:
+  - Wrapper externo: `w-full min-h-[calc(100vh-3rem)] bg-[#FAFAFC] dark:bg-[#0A0614]` (substitui `fixed inset-0 bg-black/80`).
+  - Inner container: `w-full h-full flex flex-col` (substitui `max-w-5xl rounded-2xl border shadow-2xl max-h-[90vh]`).
+  - Botão "Fechar" do rodapé oculto (navegação volta via X ou sidebar).
+  - Botão X do header com tooltip "Voltar" ao invés de "Fechar".
+- Em `StudioPage.jsx`:
+  - Novo flag `isGalleryPage = searchParams.get('gallery') === '1'`.
+  - Quando `isGalleryPage=true`: Projects list (context bar + filtros + rows) é ocultado via `{!isGalleryPage && (<>...</>)}`.
+  - `<AvatarLibraryModalV2 embedded={isGalleryPage} ... />` — modal vira page inline, senão fica modal flutuante (quando aberto por outros triggers como botão "Galeria" no header).
+
+### Resultado
+- Clicar em "Personagens" no sidebar → página full-width consistente com Projetos (mesmo sidebar, mesmo header, mesma largura, sem overlay).
+- Modal flutuante ainda disponível quando galeria é aberta via botão interno (ex.: do DirectedStudio).
+- Light + Dark mode validados via screenshots.
+
+### Arquivos modificados
+- `frontend/src/components/pipeline/AvatarLibraryModalV2.jsx` (prop `embedded`, wrapper condicional, rodapé condicional)
+- `frontend/src/pages/StudioPage.jsx` (flag `isGalleryPage`, wrapper condicional da Projects list, prop `embedded` no modal)
+
+
 ## 2026-04-20 (Session 13 — Fix: /dashboard → /studio + Light mode legibilidade)
 
 ### Bug 1: Usuário caía no Dashboard antigo após login

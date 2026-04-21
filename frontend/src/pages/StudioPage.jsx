@@ -1563,8 +1563,12 @@ export default function StudioPage() {
   }
 
   // Project List View
+  const isGalleryPage = searchParams.get('gallery') === '1';
+
   return (
     <div className="min-h-screen bg-[#FAFAFC] dark:bg-[#0A0614]" style={{ fontFamily: "'Outfit', system-ui" }}>
+      {!isGalleryPage && (
+      <>
       {/* ═══ CONTEXT BAR (pinned under global app header) ═══ */}
       <div className="sticky top-0 z-20 bg-white dark:bg-[#0A0614] border-b border-gray-200 dark:border-[#2A2442]">
         <div className="max-w-7xl mx-auto px-6 h-12 flex items-center justify-between gap-3">
@@ -1737,6 +1741,8 @@ export default function StudioPage() {
         )}
         </div>
       </div>
+      </>
+      )}
       
       {/* New Project Modal */}
       {showNewProjectModal && (
@@ -1774,6 +1780,7 @@ export default function StudioPage() {
       {/* ═══════ GLOBAL CHARACTER LIBRARY MODAL (Must be BEFORE AvatarModal in DOM) ═══════ */}
       <AvatarLibraryModalV2
         open={showGlobalLibrary}
+        embedded={isGalleryPage}
         onClose={() => {
           setShowGlobalLibrary(false);
           if (searchParams.get('gallery')) {
