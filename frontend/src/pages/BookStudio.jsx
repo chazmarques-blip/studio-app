@@ -31,6 +31,7 @@ export default function BookStudio() {
   const [step, setStep] = useState('brief');
   const [loading, setLoading] = useState(false);
   const [busyAction, setBusyAction] = useState(null);
+  const [gate, setGate] = useState(null); // Glen Keane quality gate status
 
   // brief form
   const [brief, setBrief] = useState({
@@ -89,6 +90,21 @@ export default function BookStudio() {
 
   useEffect(() => { loadProjects(); }, [loadProjects]);
   useEffect(() => { if (projectId) loadState(projectId); }, [projectId, loadState]);
+
+  // Poll quality gate status
+  useEffect(() => {
+    if (!projectId) return;
+    let alive = true;
+    const fetchGate = async () => {
+      try {
+        const { data } = await axios.get(`${API}/api/studio/book/projects/${projectId}/quality-gate`, authHeaders());
+        if (alive) setGate(data);
+      } catch (e) { /* ignore */ }
+    };
+    fetchGate();
+    const iv = setInterval(fetchGate, 15000); // refresh gate every 15s
+    return () => { alive = false; clearInterval(iv); };
+  }, [projectId]);
 
   // Polling ativo quando pipeline está rodando
   useEffect(() => {
@@ -535,6 +551,42 @@ export default function BookStudio() {
               <span className="ml-2 flex items-center gap-1 px-2 py-1 rounded-md bg-amber-100 text-amber-700 text-[10px] font-mono" data-testid="pipeline-running-pill">
                 <Loader2 className="animate-spin" size={10} /> {bookState.pipeline_step || 'running'}
               </span>
+            )}
+
+            {/* 🛡️ Glen Keane Quality Gate status */}
+            {projectId && gate && (
+              <span
+                data-testid="quality-gate-pill"
+                title={gate.message}
+                className={`ml-2 flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold font-mono ${
+                  gate.passed
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : gate.score == null
+                    ? 'bg-gray-100 text-gray-600'
+                    : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                🛡️ {gate.passed
+                  ? `Gate OK · ${gate.score}`
+                  : gate.score == null
+                  ? 'Gate não auditado'
+                  : `Gate ${gate.score}/${gate.min_required}`}
+              </span>
+            )}
+
+            {/* ✏️ Editor visual (a.k.a. Livro Editável) */}
+            {projectId && (
+              bookState?.spreads?.some?.((sp) => sp.illustration_url)
+              || bookState?.illustration_plan?.some?.((p) => p.illustration_url)
+            ) && (
+              <button
+                onClick={() => navigate(`/studio/book/${projectId}/editor`)}
+                data-testid="open-book-editor-btn"
+                className="ml-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gradient-to-r from-violet-600 to-orange-500 text-white text-xs font-bold hover:brightness-110 shadow-sm transition"
+                title="Abrir editor visual (texto, imagem, layout)"
+              >
+                ✏️ Editar Livro
+              </button>
             )}
           </div>
 
