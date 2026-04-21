@@ -1,5 +1,34 @@
 # StudioX Changelog
 
+## 2026-04-21 (Session — Refactor DirectedStudio.jsx Fase 1)
+
+### Requisito do usuário
+Refatorar `DirectedStudio.jsx` (4987 linhas — monolítico) em componentes menores sem perder funcionalidade.
+
+### O que foi implementado
+
+**1. Extrações seguras (zero mudanças de comportamento)**
+- `PipelineTrackerInline` + constante `PIPELINE_PHASES` → novo arquivo `/app/frontend/src/components/pipeline/PipelineTrackerInline.jsx` (235 linhas)
+- `SortableSceneWrapper` (wrapper de drag-and-drop) → novo arquivo `/app/frontend/src/components/pipeline/SortableSceneWrapper.jsx` (29 linhas)
+- Removido arquivo órfão `PipelineVisualTracker.jsx` (não importado em lugar nenhum)
+- Removido dead code `_calcProgress` (declarado mas nunca chamado)
+
+**2. Data-testids preservados / adicionados**
+- `pipeline-tracker-expanded`, `pipeline-tracker-minimized`, `pipeline-tracker-minimize-btn`, `pipeline-tracker-close-btn`
+- `pipeline-retry-{phaseId}`, `pipeline-next-step-btn`
+- `sortable-{id}`
+
+**3. Resultado**
+- `DirectedStudio.jsx`: **4987 → 4606 linhas** (−381 linhas / −7.6%)
+- Imports limpos: removidos `useSortable`, `CSS` (não mais usados no arquivo principal)
+- Lint limpo em todos os 3 arquivos (0 errors)
+- Testing Agent v3 (iteration_141): **100% pass**, zero regressões, 9 fluxos verificados (login, projetos, tabs, sidebar, NewProjectModal, 7-step navegação, visualização de vídeo, imports)
+
+### Pendente para próximas iterações (não bloqueador)
+- `DirectedStudio.jsx` ainda tem ~4600 linhas — Fase 2 opcional: extrair render blocks dos steps 0-7 como subcomponentes (~500 linhas cada), exigirá Context Provider para evitar prop drilling.
+
+
+
 ## 2026-04-21 (Session 13h — Quality Gate ≥90 + Livro Editável)
 
 ### Requisitos do usuário

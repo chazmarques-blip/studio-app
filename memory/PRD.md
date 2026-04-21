@@ -60,6 +60,7 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - **Modal-based prose editor** replacing window.prompt (Session 6)
 - **Project type filters** in Studio page: Tudo / Vídeos / Livros / Híbridos (Session 6)
 - **Hybrid project navigation banner** — DirectedStudio shows "Ver livro" button for output_mode='both' (Session 6)
+- **DirectedStudio Refactor Fase 1** (2026-04-21): Extracted PipelineTrackerInline + SortableSceneWrapper to `/app/frontend/src/components/pipeline/`; removed dead code `_calcProgress`; file reduced from 4987 → 4606 lines (−381 lines). 100% passing in iteration_141.
 
 ## Test Credentials
 - Email: test@studiox.com / Password: studiox123
@@ -75,7 +76,7 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - P1: Personality field UI (textarea in character editor)
 - P1: BookFactory — implement REAL RAG in `/app/backend/core/bible_rag.py` (currently mock). Use ChromaDB or Supabase pgvector to ingest public-domain reference texts.
 - P2: Custom Video Editor UI (timeline)
-- P2: Modularize DirectedStudio.jsx (>4900 lines)
+- P2: Modularize DirectedStudio.jsx Fase 2 — ainda ~4606 linhas após Fase 1. Próximo passo opcional: extrair render blocks dos steps 0-7 em subcomponentes (exige DirectedStudioContext para evitar prop drilling de ~100+ states).
 - P2: Multi-format export
 - P2: BookFactory → KDP/Lulu API integration for print-on-demand publishing
 - P2: Cleanup 218 silent `except: pass` blocks in /app/backend/routers/
