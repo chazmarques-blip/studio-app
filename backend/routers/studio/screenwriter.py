@@ -747,12 +747,18 @@ IMPORTANT:
         project["status"] = "scripting"
         project["chat_status"] = "done"
         project["pipeline_phase"] = "screenwriter_done"
-        project["active_agent"] = None  # clear "thinking" indicator
         project["updated_at"] = datetime.now(timezone.utc).isoformat()
         n_scenes = len(project.get('scenes', []))
         n_chars = len(project.get('characters', []))
         _add_milestone(project, "screenplay_created", f"Roteiro criado — {n_scenes} cenas, {n_chars} personagens")
         _save_project(tenant_id, settings, projects, flush_now=True)
+
+        # Clear active_agent (triggers metrics recording for the screenwriter run)
+        try:
+            from .agents_activity import clear_active_agent
+            clear_active_agent(tenant_id, project_id)
+        except Exception:
+            pass
 
         logger.info(f"Studio [{project_id}]: Screenwriter done — {n_scenes} scenes")
 

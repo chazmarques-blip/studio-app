@@ -224,6 +224,15 @@ def _load_mindsets() -> dict:
         return {}
 
 
+def _save_mindsets(mindsets: dict) -> None:
+    try:
+        os.makedirs(os.path.dirname(MINDSETS_FILE), exist_ok=True)
+        with open(MINDSETS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(mindsets or {}, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"mindsets save failed: {e}")
+
+
 def _get_agent_category(agent_id: str) -> Opt[str]:
     path = _resolve_agent_path(agent_id)
     if not path:
@@ -393,3 +402,129 @@ async def playground_test(req: PlaygroundRequest, user=Depends(get_current_user)
         logger.error(f"Playground error for {req.agent_id}: {e}")
         raise HTTPException(status_code=500, detail=f"LLM call failed: {str(e)[:200]}")
 
+
+
+
+# ─── Export / Import (Dream Team backup & share) ──────────────
+@router.get("/agents/export")
+async def export_agents_config(user=Depends(get_current_user)):
+    """
+    Export the FULL agents registry (all agents + mindsets) as a single JSON
+    payload. Useful for backups, sharing a "Dream Team", or migrating between
+    environments.
+    """
+    agents_out = []
+
+    def _scan(folder: str):
+        if not os.path.isdir(folder):
+            return
+        for fname in sorted(os.listdir(folder)):
+            if not fname.endswith(".json"):
+                continue
+            if fname.startswith("_") or fname in ("agent_compositions.json",):
+                continue
+            fpath = os.path.join(folder, fname)
+            data = _load_agent_file(fpath)
+            if not data:
+                continue
+            agent_id = data.get("id") or fname.replace(".json", "")
+            # Strip edit_history to keep export small & portable
+            clean = {k: v for k, v in data.items() if k != "edit_history"}
+            clean["id"] = agent_id
+            clean["_category"] = _categorize(agent_id, fpath)
+            agents_out.append(clean)
+
+    _scan(AGENTS_DIR)
+    _scan(BOOK_AGENTS_DIR)
+
+    mindsets = _load_mindsets()
+
+    return {
+        "format_version": 1,
+        "exported_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "studiox_version": "1.0",
+        "agents": agents_out,
+        "mindsets": mindsets,
+        "counts": {"agents": len(agents_out), "mindsets": len(mindsets or {})},
+    }
+
+
+class ImportPayload(BaseModel):
+    format_version: Opt[int] = 1
+    agents: Opt[list] = None
+    mindsets: Opt[dict] = None
+    overwrite: Opt[bool] = False  # if True, replace existing; else only add missing
+
+
+@router.post("/agents/import")
+async def import_agents_config(
+    payload: ImportPayload = Body(...),
+    user=Depends(get_current_user),
+):
+    """
+    Import an agents registry bundle. By default only ADDS agents/mindsets that
+    don't already exist — pass overwrite=true to replace everything.
+    Returns counts of imported / skipped / errors.
+    """
+    if payload.format_version and payload.format_version != 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported format_version: {payload.format_version}",
+        )
+
+    imported = 0
+    skipped = 0
+    errors = []
+
+    for a in (payload.agents or []):
+        try:
+            agent_id = a.get("id")
+            if not agent_id:
+                errors.append({"reason": "missing id", "agent": (a.get("name") or "?")})
+                continue
+
+            category = a.get("_category") or _categorize(agent_id, "")
+            target_folder = BOOK_AGENTS_DIR if category == "book" else AGENTS_DIR
+            os.makedirs(target_folder, exist_ok=True)
+            target_path = os.path.join(target_folder, f"{agent_id}.json")
+
+            if os.path.exists(target_path) and not payload.overwrite:
+                skipped += 1
+                continue
+
+            # Clean out internal-only fields
+            clean = {k: v for k, v in a.items() if not k.startswith("_")}
+            clean["id"] = agent_id
+            clean["updated_at"] = datetime.utcnow().strftime("%Y-%m-%d")
+
+            with open(target_path, "w", encoding="utf-8") as f:
+                json.dump(clean, f, indent=2, ensure_ascii=False)
+            imported += 1
+        except Exception as e:
+            errors.append({"agent_id": a.get("id"), "error": str(e)[:200]})
+
+    # Import mindsets
+    mindsets_imported = 0
+    if payload.mindsets:
+        try:
+            current = _load_mindsets()
+            for category, m in (payload.mindsets or {}).items():
+                if category in current and not payload.overwrite:
+                    continue
+                current[category] = m
+                mindsets_imported += 1
+            _save_mindsets(current)
+        except Exception as e:
+            errors.append({"mindsets_error": str(e)[:200]})
+
+    logger.info(
+        f"AgentsRegistry import: {imported} agents + {mindsets_imported} mindsets "
+        f"(skipped={skipped}, errors={len(errors)}, overwrite={payload.overwrite})"
+    )
+    return {
+        "status": "ok",
+        "imported_agents": imported,
+        "imported_mindsets": mindsets_imported,
+        "skipped": skipped,
+        "errors": errors,
+    }

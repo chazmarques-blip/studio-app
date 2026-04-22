@@ -43,5 +43,6 @@
   "master_reference": "Peter Mendelsund",
   "master_bio": "Designer de capas da Knopf. Autor de 'Cover' e 'What We See When We Read'. Mestre em tipografia e metáfora visual minimalista.",
   "note": "Prompt SEED extraído do router. Preserve placeholders como {lang}, {lang_name}, {lang_full}, {chapter_n} etc. — eles são substituídos em runtime.",
-  "seeded_at": "2026-04-21"
+  "seeded_at": "2026-04-21",
+  "updated_at": "2026-04-22"
 }

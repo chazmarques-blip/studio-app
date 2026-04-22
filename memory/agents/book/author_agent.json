@@ -38,5 +38,6 @@
   "master_reference": "Neil Gaiman",
   "master_bio": "Autor britânico, multi-gênero (American Gods, Sandman, Coraline). Storytelling acessível, rico em mitologia, com voz autoral inconfundível.",
   "note": "Prompt SEED extraído do router. Preserve placeholders como {lang}, {lang_name}, {lang_full}, {chapter_n} etc. — eles são substituídos em runtime.",
-  "seeded_at": "2026-04-21"
+  "seeded_at": "2026-04-21",
+  "updated_at": "2026-04-22"
 }

@@ -33,5 +33,6 @@
   "master_reference": "Mary Norris",
   "master_bio": "Revisora da The New Yorker por 30+ anos ('Comma Queen'). Autora de 'Between You & Me'. Precisão gramatical com sensibilidade literária.",
   "note": "Prompt SEED extraído do router. Preserve placeholders como {lang}, {lang_name}, {lang_full}, {chapter_n} etc. — eles são substituídos em runtime.",
-  "seeded_at": "2026-04-21"
+  "seeded_at": "2026-04-21",
+  "updated_at": "2026-04-22"
 }

@@ -140,6 +140,7 @@ export const DirectedStudio = memo(function DirectedStudio({
     if (!previewModal) return;
     const handler = (e) => {
       if (e.key === 'Escape') setPreviewModal(null);
+      // Gallery navigation
       if (previewModal.type === 'gallery' && e.key === 'ArrowRight') {
         setPreviewModal(prev => prev?.data?.currentIndex < prev?.data?.images?.length - 1
           ? { ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex + 1 } } : prev);
@@ -147,6 +148,26 @@ export const DirectedStudio = memo(function DirectedStudio({
       if (previewModal.type === 'gallery' && e.key === 'ArrowLeft') {
         setPreviewModal(prev => prev?.data?.currentIndex > 0
           ? { ...prev, data: { ...prev.data, currentIndex: prev.data.currentIndex - 1 } } : prev);
+      }
+      // Video navigation: ← → jumps between scene videos
+      if (previewModal.type === 'video' && previewModal.data?.allVideos?.length > 1) {
+        const videos = previewModal.data.allVideos;
+        const currentIdx = videos.findIndex(v => v.scene_number === previewModal.data.scene_number);
+        if (e.key === 'ArrowRight' && currentIdx < videos.length - 1) {
+          const next = videos[currentIdx + 1];
+          setPreviewModal({ type: 'video', data: { ...next, allVideos: videos } });
+        }
+        if (e.key === 'ArrowLeft' && currentIdx > 0) {
+          const prev = videos[currentIdx - 1];
+          setPreviewModal({ type: 'video', data: { ...prev, allVideos: videos } });
+        }
+      }
+      // Space toggles play/pause on the preview video (only when modal is video)
+      if (previewModal.type === 'video' && e.key === ' ') {
+        // Avoid scrolling the underlying page
+        e.preventDefault();
+        const v = document.querySelector('[data-testid="preview-video-player"]');
+        if (v) { v.paused ? v.play() : v.pause(); }
       }
     };
     window.addEventListener('keydown', handler);

@@ -43,6 +43,10 @@ def set_active_agent(
     """
     Mark an agent as currently active on a project. Safe to call in background
     tasks — all errors are swallowed to avoid breaking pipelines.
+
+    If a different agent was already active, its duration is recorded in
+    metrics BEFORE the new agent replaces it (auto-metrics without explicit
+    clear_active_agent calls).
     """
     try:
         now = datetime.now(timezone.utc).isoformat()
@@ -59,6 +63,23 @@ def set_active_agent(
         settings, projects, project = _get_project(tenant_id, project_id)
         if not project:
             return
+
+        # ── Auto-record metrics for the PREVIOUS agent if it was different ──
+        prev = project.get("active_agent")
+        if prev and prev.get("agent_id") and prev.get("agent_id") != agent_id:
+            try:
+                prev_started = datetime.fromisoformat(prev.get("started_at"))
+                duration = (datetime.now(timezone.utc) - prev_started).total_seconds()
+                from .agents_metrics import record_activation
+                record_activation(
+                    tenant_id,
+                    prev.get("agent_id"),
+                    duration_seconds=max(0.0, duration),
+                    input_tokens=int(prev.get("input_tokens", 0)),
+                    output_tokens=int(prev.get("output_tokens", 0)),
+                )
+            except Exception as e:
+                logger.warning(f"auto-record prev agent failed: {e}")
 
         project["active_agent"] = active
 
@@ -89,7 +110,22 @@ def clear_active_agent(tenant_id: str, project_id: str) -> None:
         settings, projects, project = _get_project(tenant_id, project_id)
         if not project:
             return
-        if project.get("active_agent"):
+        active = project.get("active_agent")
+        if active:
+            # Record metrics: compute duration between started_at and now
+            try:
+                started = datetime.fromisoformat(active.get("started_at"))
+                duration = (datetime.now(timezone.utc) - started).total_seconds()
+                from .agents_metrics import record_activation
+                record_activation(
+                    tenant_id,
+                    active.get("agent_id", "unknown"),
+                    duration_seconds=max(0.0, duration),
+                    input_tokens=int(active.get("input_tokens", 0)),
+                    output_tokens=int(active.get("output_tokens", 0)),
+                )
+            except Exception as e:
+                logger.warning(f"record_activation on clear failed: {e}")
             project["active_agent"] = None
             project["updated_at"] = datetime.now(timezone.utc).isoformat()
             _save_project(tenant_id, settings, projects, flush_now=True)

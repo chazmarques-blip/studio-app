@@ -38,5 +38,6 @@
   "master_reference": "Chip Kidd",
   "master_bio": "Diretor de arte da Knopf (Random House). Definiu a estética do livro contemporâneo com capas icônicas (Jurassic Park, 1Q84).",
   "note": "Prompt SEED extraído do router. Preserve placeholders como {lang}, {lang_name}, {lang_full}, {chapter_n} etc. — eles são substituídos em runtime.",
-  "seeded_at": "2026-04-21"
+  "seeded_at": "2026-04-21",
+  "updated_at": "2026-04-22"
 }

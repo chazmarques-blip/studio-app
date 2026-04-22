@@ -54,5 +54,6 @@
   "master_reference": "Jan Tschichold",
   "master_bio": "Tipógrafo alemão-suíço (1902-1974). Autor de 'The Form of the Book'. Definiu regras clássicas de diagramação e proporções áureas na editoração.",
   "note": "Prompt SEED extraído do router. Preserve placeholders como {lang}, {lang_name}, {lang_full}, {chapter_n} etc. — eles são substituídos em runtime.",
-  "seeded_at": "2026-04-21"
+  "seeded_at": "2026-04-21",
+  "updated_at": "2026-04-22"
 }

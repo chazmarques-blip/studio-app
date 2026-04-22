@@ -34,5 +34,6 @@
   "master_reference": "Max Perkins",
   "master_bio": "Editor americano lendário da Scribner's. Editou Hemingway, Fitzgerald, Wolfe. Padrão-ouro em consistência narrativa e voz autoral.",
   "note": "Prompt SEED extraído do router. Preserve placeholders como {lang}, {lang_name}, {lang_full}, {chapter_n} etc. — eles são substituídos em runtime.",
-  "seeded_at": "2026-04-21"
+  "seeded_at": "2026-04-21",
+  "updated_at": "2026-04-22"
 }

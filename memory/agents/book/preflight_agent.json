@@ -47,5 +47,6 @@
   "master_reference": "Gerhard Steidl",
   "master_bio": "Editor/impressor alemão fundador da Steidl Verlag. Padrão-ouro mundial em pré-impressão e qualidade gráfica (Karl Lagerfeld confiava apenas nele).",
   "note": "Prompt SEED extraído do router. Preserve placeholders como {lang}, {lang_name}, {lang_full}, {chapter_n} etc. — eles são substituídos em runtime.",
-  "seeded_at": "2026-04-21"
+  "seeded_at": "2026-04-21",
+  "updated_at": "2026-04-22"
 }

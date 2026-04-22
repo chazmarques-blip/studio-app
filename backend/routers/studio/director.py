@@ -369,8 +369,12 @@ def _run_director_review_background(tenant_id: str, project_id: str):
             "director_review": review_result,
             "director_review_at": review_result["reviewed_at"],
             "pipeline_phase": "director_done",
-            "active_agent": None,
         })
+        try:
+            from .agents_activity import clear_active_agent
+            clear_active_agent(tenant_id, project_id)
+        except Exception:
+            pass
         
         # Unify dialogue = dubbed_text after Director creates revised dialogues
         settings2, projects2, project2 = _get_project(tenant_id, project_id)
