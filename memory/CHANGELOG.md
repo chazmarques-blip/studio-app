@@ -1,5 +1,61 @@
 # StudioX Changelog
 
+## 2026-04-22 (Session — P2 Partial: Keyboard Nav + Métricas + Export/Import)
+
+### Requisito do usuário
+Executar P2 completo. Deferidos items de alto risco/escopo massivo (DirectedStudio Fase 2, Dark mode completo, WebSocket, `except: pass`, multi-format, Migrar avatar states) para sessões dedicadas.
+
+### O que foi implementado
+
+**1. Navegação por teclado no Lightbox**
+- `DirectedStudio.jsx` useEffect keyboard handler expandido:
+  - `Esc` — fecha modal (já existia)
+  - `← →` — navega entre spreads/gallery (já existia) + AGORA entre vídeos de cena quando `previewModal.data.allVideos` tem múltiplos itens
+  - `Space` — toggle play/pause no vídeo (novo)
+
+**2. Métricas de Agentes — Backend**
+- Novo módulo `/app/backend/routers/studio/agents_metrics.py`:
+  - `record_activation(tenant_id, agent_id, duration, input_tokens, output_tokens)` — agrega por agent_id em `settings.agent_metrics`
+  - Custo estimado USD via Claude Sonnet 4.5 pricing ($3/1M input, $15/1M output)
+  - `GET /api/studio/agents/metrics` — retorna `{metrics: {agent_id: {...}}, totals}` com `avg_latency_seconds` derivado
+  - `POST /api/studio/agents/metrics/reset` — zera tudo
+- `agents_activity.py` atualizado:
+  - `set_active_agent` auto-registra métrica do **previous** agente se diferente (sem clear explícito)
+  - `clear_active_agent` registra duração do agente ativo
+- Pipelines instrumentados (screenwriter, director, continuity video/book) trocaram `_update_project_field({active_agent:None})` → `clear_active_agent()` para disparar record_activation corretamente
+- **Testado end-to-end**: POST continuity-audit → GET metrics retornou `consistency_checker_agent: activations=1, duration=18s`
+
+**3. Export/Import de Agentes**
+- `GET /api/studio/agents/export` — retorna bundle `{format_version:1, agents[19], mindsets{3}, counts}`
+- `POST /api/studio/agents/import` — aceita `{agents, mindsets, overwrite}`, retorna `{imported_agents, imported_mindsets, skipped, errors}`
+- `_save_mindsets()` helper adicionado em `agents_registry.py`
+
+**4. Frontend — AgentsPage**
+- 3 novos botões no context bar: **Métricas** (BarChart3), **Exportar** (Download), **Importar** (Upload)
+- `MetricsModal` com:
+  - 3 StatBoxes (Ativações Totais / Custo Estimado $ / Tempo Total)
+  - Tabela sortada por ativações com: nome agente + master badge + ativações + latência média + custo + última uso
+  - Botão "Zerar" (confirm + POST reset)
+- Export → download `studiox-agents-YYYY-MM-DD.json`
+- Import → file picker + confirm overwrite
+- Data-testids: `btn-open-metrics`, `btn-export-agents`, `btn-import-agents`, `metrics-modal`, `metrics-row-{agent_id}`, `metrics-reset-btn`, `metrics-close-btn`
+
+### Testes
+- Curl manual: continuity-audit → metrics retornou activations=1 ✅
+- Export → Import roundtrip: 19 skipped (expected) ✅
+- Testing Agent iteration_143: **Backend 25/25 passed, Frontend 100%** — zero regressões
+
+### Deferidos para sessões dedicadas
+- DirectedStudio Refactor Fase 2 (4606 → context provider, massivo)
+- Dark mode completo (CSS variables em 50+ componentes)
+- WebSocket real-time (infra change)
+- Cleanup 218 `except: pass` (risco de esconder bugs)
+- Multi-format export (9:16/1:1/4:5, ffmpeg work)
+- Migrar avatar states para `useAvatarManager.js` (hook existe 357 linhas mas nunca integrado — migração exige regressão completa do fluxo de criação)
+- Cleanup rotas legadas (campaigns.py é CORE do pipeline — não é legacy; precisa análise cuidadosa)
+
+
+
 ## 2026-04-21 (Session — Fix: Dark/Light Mode Inconsistente)
 
 ### Problema reportado
