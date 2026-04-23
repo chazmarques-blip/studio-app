@@ -1,5 +1,76 @@
 # StudioX Changelog
 
+## 2026-04-23 (Session — P0 Crítico + P1 Alto Impacto: Vídeos Perfeitos)
+
+### Requisito do usuário
+Após análise profunda do pipeline de vídeo (JONAS score 45/100), executar:
+- **P0**: Continuity Auto-Fix, Character Bible Enforcement, Voice Consistency default, Cinema Sequential default
+- **P1**: Token Tracking, Progress Granular, Retry per scene, Loudness Normalization
+
+### O que foi implementado
+
+**🔴 P0 #1 — Continuity Auto-Correction Loop**
+- Novo endpoint `POST /api/studio/projects/{id}/continuity-auto-fix` em `continuity_audit.py`
+- Parseia issues do último audit (regex `scene_\d+`), filtra severity high/medium
+- Dispara background task `_run_auto_fix_background` que chama `_do_regenerate_scene` para cada cena afetada
+- Passa correction_brief com issues como `notes` para o storyboard regenerar com contexto específico
+- Status persistido em `project.continuity_auto_fix = {status, target_scenes, issues, regenerated_scenes, errors}`
+- **Testado manualmente**: JONAS → mapeou cenas [4,5,22,27,28,29] baseado em 4 issues ✅
+
+**🔴 P0 #2 — Character Bible Enforcement**
+- `screenwriter.py` linhas ~510-565: construído `character_bible_ctx` com `species`, `outfit`, `colors`, `age` de cada personagem
+- Injetado no prompt com linguagem forte: **"🔒 CHARACTER BIBLE (IMMUTABLE — every scene MUST match). RULES (VIOLATION = REJECTED OUTPUT)"**
+- Resolve o bug do JONAS ("coelho bege / carneiro" entre cenas)
+- Backward-compatible: se `characters[]` vazio, Bible ctx fica em branco
+
+**🔴 P0 #3 — Voice Consistency + P0 #4 — Cinema Sequential default**
+- `production.py`: `production_quality` agora default `"cinema"` para `len(scenes) >= 3` (antes era `"fast"` default)
+- Cinema mode: Sora 2 Pro + 1792x1024 + CRF 18 + crossfade + voice locking via `_sora_character_ids_for_scene`
+- Usuário pode manualmente setar `"fast"` se quiser velocidade
+
+**🟡 P1 #5 — Token Tracking**
+- `_shared.py`: novo `_accumulate_token_usage(response)` extrai `prompt_tokens`/`completion_tokens` do litellm response
+- `ContextVar` `_LLM_CTX_TENANT`/`_LLM_CTX_PROJECT` + context manager `_llm_context(tenant, project)`
+- Pipelines envolvem LLM calls com `with _llm_context(tenant_id, project_id):` → tokens são automaticamente gravados em `active_agent.input_tokens/output_tokens` → quando `clear_active_agent` roda, `record_activation` calcula custo USD real
+- **Wired no screenwriter** (P0 heaviest). Demais pipelines ficam para próxima sessão
+
+**🟡 P1 #6 — Progress Granular**
+- `_update_scene_status` agora popula:
+  - `progress_percent` (0-95%, últimos 5% reservados p/ concat+upload)
+  - `phase_detail` (string human-readable: "Gerando vídeo da cena 7", "Concatenando filme final", etc.)
+- Frontend `DirectedStudio.jsx`: novo `<div data-testid="global-progress-bar">` com gradient violet→fuchsia→orange + phase_detail italic
+
+**🟡 P1 #7 — Retry per scene**
+- Já existia via `regenerateScene` chamando `/regenerate-scene`. Verificado funcionando.
+- Upgrade adicional: `_do_regenerate_scene()` helper in-process em `scene_regenerate.py` (callable sem HTTP — usado pelo auto-fix)
+
+**🟡 P1 #10 — Loudness Normalization**
+- `_concatenate_videos` (ambos paths: simple concat + xfade) agora aplicam:
+  - Filter: `loudnorm=I=-16:TP=-1.5:LRA=11` (broadcast standard EBU R128)
+  - Resolve inconsistências de volume entre cenas dubladas
+
+**Frontend — ContinuityAuditModal**
+- Novo botão "Auto-Fix" (data-testid `continuity-auto-fix-btn`) aparece quando:
+  - `mode === 'video'`
+  - `score < 85`
+  - Há issues severity high/medium
+- Handler `runAutoFix` com confirm → POST endpoint → toast com `target_scenes.length`
+
+### Testes
+- Testing Agent iteration_145: **Backend 13/13 passed (100%)**, **Frontend 100%** (login, nav, sidebar, agents), zero regressões, zero bugs críticos
+- Manual: auto-fix retornou `target_scenes:[4,5,22,27,28,29]` para JONAS, 400 para projeto sem report ✅
+
+### Próximos passos (P2 quando concluirmos)
+- DirectedStudio Refactor Fase 2 (4606 linhas → Context Provider)
+- Dark mode completo (CSS variables)
+- WebSocket real-time
+- Cleanup 218 `except: pass`
+- Dashboard de qualidade do projeto (quality score visualization)
+- Pipeline asyncio migration (Sora polling)
+- Multi-idioma real (prompts dos agentes)
+
+
+
 ## 2026-04-22 (Session — P2 Parte 2: Cleanup Legacy + Multi-Format Export)
 
 ### Requisito do usuário
