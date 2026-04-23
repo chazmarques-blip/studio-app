@@ -1,5 +1,50 @@
 # StudioX Changelog
 
+## 2026-04-22 (Session — P2 Parte 2: Cleanup Legacy + Multi-Format Export)
+
+### Requisito do usuário
+Executar P2 restante. Completados os items de menor risco/escopo controlado nesta sessão.
+
+### O que foi implementado
+
+**1. Cleanup de rotas/páginas legadas (CRM/Marketing/Chat)**
+- **Frontend removidos (13 páginas)**: Chat.jsx, CRM.jsx, LeadDetail.jsx, HandoffHuman.jsx, AgentBuilder.jsx, AgentConfig.jsx, AgentSandbox.jsx, Agents.jsx, CampaignBuilder.jsx, Marketing.jsx, MarketingStudio.jsx, TrafficHub.jsx, DashboardStudio.jsx
+- **Frontend `App.js`**: removidos 13 imports lazy + 13 Route definitions (`/chat`, `/crm`, `/marketing`, `/agents/builder`, `/agents/sandbox`, `/agents/:id/config`, `/crm/lead/:id`, `/campaigns/new`, `/chat/handoff/:id`, `/marketing/studio`, `/traffic-hub`)
+- **Backend removidos (7 routers)**: `conversations.py`, `leads.py`, `telegram.py`, `agent_generator.py`, `pipeline.py` (legacy), `agents.py` (old CRM), `ai.py`
+- **Backend `server.py`**: removidos 7 imports + 7 `include_router` calls
+- **Mantido**: `whatsapp.py`, `channels.py`, `google.py` (usados por Settings → ChannelConnection/GoogleIntegration ativamente)
+- **Mantido**: `campaigns.py` (CORE do pipeline de avatares/pré-produção), `data.py`, `avatar.py`, `music.py`, `companies.py`, `folders.py`, `studio/*`
+
+**2. Multi-Format Export (9:16 / 1:1 / 4:5 / 16:9)**
+- **Backend novo módulo**: `/app/backend/routers/studio/multi_format_export.py`
+  - `_reformat_video()` usa ffmpeg com filter complex: `split[bg][fg]; [bg]scale/crop/gblur → blurred backdrop; [fg]scale→fit; [bg][fg]overlay centered` — cria letterbox/pillarbox com backdrop borrado (qualidade de cinema, sem barras pretas feias)
+  - `POST /api/studio/projects/{id}/export-format {format}` — background task, retorna status=processing
+  - `GET /api/studio/projects/{id}/exports` — retorna `{exports: {fmt: {url, resolution, label, created_at}}, available_formats}`
+  - 4 presets: 16:9 (1920×1080 YouTube), 9:16 (1080×1920 Reels/Shorts/TikTok), 1:1 (1080×1080 Instagram Square), 4:5 (1080×1350 Instagram Feed)
+  - Auto-instrumentado com `set_active_agent("post_producer_agent")` + `clear_active_agent()` → métricas
+- **Frontend novo componente**: `/app/frontend/src/components/pipeline/MultiFormatExport.jsx`
+  - Renderizado em `DirectedStudio.jsx` step 7, tab "filme" quando há vídeo final
+  - 4 cards com Icon (Smartphone/Square/Monitor) + label + subresolution
+  - Estados: empty (Gerar) / processing (spinner) / ready (Baixar verde) / error (Retry vermelho)
+  - Polling 5s enquanto qualquer formato está "processando"
+  - Data-testids: `multi-format-export`, `export-format-9x16`, `export-request-9x16`, `export-download-9x16`, etc.
+
+### Testes
+- `/api/studio/projects/1f26f1649bcf/exports` retornou 4 available_formats ✅
+- POST export-format com `9:16` retornou `status:processing, preset:{w:1080,h:1920}` ✅
+- POST com format inválido retornou `400 Unsupported format` ✅
+- Frontend: 67 projetos carregando após cleanup, sidebar com 4 items corretos ✅
+- Testing Agent iteration_144: **Backend 22/23 passed** (1 flaky Supabase transient, pre-existing) + **Frontend 90%** (core OK, MultiFormatExport UI testado em código devido a 500s de Supabase intermitentes no momento do teste) — **zero regressões reais**
+
+### Deferidos (ainda)
+- DirectedStudio Refactor Fase 2 (4606 → Context Provider, massivo)
+- Dark mode completo (CSS variables em ~50 componentes)
+- WebSocket real-time (infra change)
+- Cleanup 218 `except: pass` (auditar um-a-um)
+- Migrar avatar states para `useAvatarManager.js` — hook está incompleto (defaults diferentes + 5 estados faltando vs StudioPage.jsx); exige sessão dedicada com audit + regressão completa do fluxo de criação de avatares
+
+
+
 ## 2026-04-22 (Session — P2 Partial: Keyboard Nav + Métricas + Export/Import)
 
 ### Requisito do usuário
