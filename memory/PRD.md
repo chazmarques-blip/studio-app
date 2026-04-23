@@ -74,6 +74,24 @@ StudioX is an end-to-end autonomous video creation platform for animated content
 - **JONAS E O PEIXE GRANDE** (1f26f1649bcf): 32 scenes, all videos generated, final movie concatenated with V2A sonoplastia. Status: COMPLETE
 - **Jonas e a Baleia** (fd7e965d42f8): 35 scenes, 0 videos generated
 
+## 🎬 Current Focus
+**Vídeos perfeitos** — toda a trilha de produção de vídeo é prioridade máxima (Sora 2 Pro + Nano Banana Pro + Cinema FFmpeg + Voice Consistency + Multi-Format Export).
+
+## 📚 Books Track — PAUSED
+Trilha de livros está em **manutenção**, não está sendo evoluída no momento.
+Features continuam em produção (BookFactory, Quality Gate, BookEditorPage, Mary Blair + Glen Keane), mas **backlog de melhorias foi capturado em `/app/memory/BOOKS_BACKLOG.md`** com 15 itens identificados durante análise em tempo real (23/04/2026) do livro "Manual do Pulmeranea" (33 spreads, score 85/90).
+
+**Principais itens a retomar depois** (ver BOOKS_BACKLOG.md para detalhes):
+- P0: CMYK automático via ghostscript (hoje é warning, precisa ser step do pipeline)
+- P0: Integrar Glen Keane Auditor ao fim do pipeline (hoje só é disponível via endpoint manual)
+- P0: Popular `book_state.thumbnails` automaticamente
+- P1: Live feedback com ActiveAgentIndicator durante geração do livro
+- P1: Retry por spread (regerar UMA ilustração sem refazer livro todo — 10s vs 6min)
+- P1: Quality Gate configurável por projeto + botão "Forçar aprovação"
+- P1: Validar fluxo BookEditorPage end-to-end com livro real
+- P2: Integração KDP/Lulu print-on-demand
+- P3: Refactor arquitetural do `book_factory.py` (2933 linhas) + paralelização asyncio.gather
+
 ## Backlog
 - P0 (non-blocking, observed): Backend worker saturation when video pipeline runs — `time.sleep` + sync `videos.retrieve` in Sora polling can queue requests. Production runs in thread pool so it's mitigated, but worth migrating to `asyncio.sleep` + `asyncio.to_thread()` for cleaner multiplexing.
 - P1: Personality field UI (textarea in character editor)
