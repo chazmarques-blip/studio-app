@@ -125,7 +125,7 @@ async def _generate_single_image(frame: Dict, tenant_id: str, project_id: str) -
             if result and result.get("url"):
                 return result["url"]
                 
-        except:
+        except Exception:
             pass
         
         # If all fails, return None (will keep trying later)

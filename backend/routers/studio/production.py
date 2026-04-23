@@ -132,7 +132,7 @@ def _generate_video_with_openai_direct(client: OpenAI, prompt: str, size: str = 
         if img_file_handle:
             try:
                 img_file_handle.close()
-            except:
+            except Exception:
                 pass
 
 def _generate_video_unified(
@@ -1001,7 +1001,7 @@ VISUAL DIRECTION: {visual_direction}
                                     else:
                                         lip_failed += 1
                                     try: os.remove(audio_tmp)
-                                    except: pass
+                                    except Exception: pass
                                     continue
                                 
                                 session_id = face_result["session_id"]
@@ -1049,7 +1049,7 @@ VISUAL DIRECTION: {visual_direction}
                                         lip_failed += 1
                                 
                                 try: os.remove(audio_tmp)
-                                except: pass
+                                except Exception: pass
                                     
                             except Exception as ls_err:
                                 logger.warning(f"  LipSync F{fn}: Error ({ls_err}), keeping original")
@@ -1089,7 +1089,7 @@ VISUAL DIRECTION: {visual_direction}
                 ], capture_output=True, timeout=300)
                 
                 try: os.remove(concat_list)
-                except: pass
+                except Exception: pass
                 
                 if concat_result.returncode != 0:
                     logger.error(f"Studio [{project_id}]: Concat failed: {concat_result.stderr.decode()[:200]}")
@@ -1378,10 +1378,10 @@ VISUAL DIRECTION: {visual_direction}
                         # Cleanup
                         import shutil
                         try: shutil.rmtree(tmpdir)
-                        except: pass
+                        except Exception: pass
                         for c in clips:
                             try: os.remove(c["clip_path"])
-                            except: pass
+                            except Exception: pass
                         
                         if video_url:
                             _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
@@ -1409,7 +1409,7 @@ VISUAL DIRECTION: {visual_direction}
                         import traceback; logger.error(traceback.format_exc())
                         import shutil
                         try: shutil.rmtree(tmpdir)
-                        except: pass
+                        except Exception: pass
                 
                 # ── Fallback: No voice_map -> upload video without audio ──
                 if os.path.exists(output_path):
@@ -1422,9 +1422,9 @@ VISUAL DIRECTION: {visual_direction}
                     
                     for c in clips:
                         try: os.remove(c["clip_path"])
-                        except: pass
+                        except Exception: pass
                     try: os.remove(output_path)
-                    except: pass
+                    except Exception: pass
                     
                     _save_scene_video(tenant_id, project_id, scene_num, video_url, total, sora_prompt=sora_prompt)
                     _update_scene_status(tenant_id, project_id, scene_num, "done", total)
@@ -1698,7 +1698,7 @@ VISUAL DIRECTION: {visual_direction}
                                     "-frames:v", "1", "-q:v", "2", last_frame_path
                                 ], capture_output=True, timeout=15)
                                 try: os.remove(tmp_vid)
-                                except: pass
+                                except Exception: pass
                         except Exception as e:
                             logger.warning(f"Studio [{project_id}]: Failed to extract last frame from cached scene {sn}: {e}")
                         
@@ -1736,7 +1736,7 @@ VISUAL DIRECTION: {visual_direction}
                                 ], capture_output=True, timeout=15)
                                 
                                 try: os.remove(tmp_vid)
-                                except: pass
+                                except Exception: pass
                                 
                                 if os.path.exists(last_frame_path) and os.path.getsize(last_frame_path) > 1000:
                                     logger.info(f"Studio [{project_id}]: Extracted last frame from scene {sn} ({os.path.getsize(last_frame_path)//1024}KB)")
@@ -1757,7 +1757,7 @@ VISUAL DIRECTION: {visual_direction}
                 # Cleanup cinema frames
                 for i in range(1, total + 1):
                     try: os.remove(f"/tmp/cinema_lastframe_{project_id}_{i}.jpg")
-                    except: pass
+                    except Exception: pass
             else:
                 # PARALLEL rendering for Kling (no continuity needed)
                 with ThreadPoolExecutor(max_workers=total) as executor:
@@ -3172,7 +3172,7 @@ Story: {briefing[:300]}
                                     import shutil
                                     try:
                                         shutil.rmtree(tmpdir)
-                                    except:
+                                    except Exception:
                                         pass
                             
                             else:
@@ -3248,7 +3248,7 @@ Story: {briefing[:300]}
                             for tmp in [video_temp, audio_temp, merged_temp]:
                                 try:
                                     os.unlink(tmp)
-                                except:
+                                except Exception:
                                     pass
                                     
                         except Exception as audio_err:

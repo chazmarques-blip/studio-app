@@ -380,7 +380,7 @@ def _generate_panels_ordered_parallel(tenant_id: str, project_id: str, quality: 
                 project["storyboard_progress"]["status"] = "error"
                 project["storyboard_progress"]["error"] = str(e)[:300]
                 _save_project(tenant_id, settings, projects)
-        except:
+        except Exception:
             pass
 
 

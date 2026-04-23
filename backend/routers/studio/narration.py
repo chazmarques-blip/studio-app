@@ -585,7 +585,7 @@ Language of the project: {LANG_NAMES.get(lang, lang)}"""
     # 🔗 Registry override — Hans Zimmer for voice casting
     try:
         from .agents_registry import resolve_agent_prompt
-        system_prompt = resolve_agent_prompt("sound_designer_agent", fallback=system_prompt)
+        system_prompt = resolve_agent_prompt("sound_designer_agent", fallback=system_prompt, lang=lang)
     except Exception as _e:
         logger.warning(f"Narration single-voice: registry override failed: {_e}")
 
@@ -850,7 +850,7 @@ Design the PERFECT voice for each character. Make each voice UNIQUE and INSTANTL
     # 🔗 Registry override — Hans Zimmer for voice casting
     try:
         from .agents_registry import resolve_agent_prompt
-        system_prompt = resolve_agent_prompt("sound_designer_agent", fallback=system_prompt)
+        system_prompt = resolve_agent_prompt("sound_designer_agent", fallback=system_prompt, lang=lang)
     except Exception as _e:
         logger.warning(f"Narration voice-casting: registry override failed: {_e}")
 

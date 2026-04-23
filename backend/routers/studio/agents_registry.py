@@ -252,19 +252,23 @@ def resolve_category_mindset(category: str) -> Opt[str]:
     return None
 
 
-def resolve_agent_prompt(agent_id: str, fallback: str) -> str:
+def resolve_agent_prompt(agent_id: str, fallback: str, lang: Opt[str] = None) -> str:
     """
     Returns the final system prompt to feed the LLM, combining (in this order):
+      0. Output-language directive (if `lang` is provided — e.g. "pt", "en", "es")
       1. Category Mindset (if active)
       2. Agent's custom system_prompt (if active) OR the hardcoded fallback
 
     All layers are optional — the function is defensive and ALWAYS returns a non-empty
     string (fallback at minimum), ensuring pipeline never breaks.
 
+    The language directive is short and explicit so even strong creative prompts stay
+    in the requested language (Claude/GPT tend to default to English otherwise).
+
     Usage in pipeline routers:
         from .agents_registry import resolve_agent_prompt
         HARDCODED = "Você é um roteirista..."
-        prompt = resolve_agent_prompt("screenwriter_agent", fallback=HARDCODED)
+        prompt = resolve_agent_prompt("screenwriter_agent", fallback=HARDCODED, lang="pt")
     """
     try:
         # Layer 1: resolve the agent's own prompt
@@ -280,9 +284,29 @@ def resolve_agent_prompt(agent_id: str, fallback: str) -> str:
         # Layer 2: prepend category mindset if active
         category = _get_agent_category(agent_id) or "video"
         mindset = resolve_category_mindset(category)
-        if mindset:
-            return f"{mindset}\n\n---\n\n{agent_prompt}"
-        return agent_prompt
+        combined = f"{mindset}\n\n---\n\n{agent_prompt}" if mindset else agent_prompt
+
+        # Layer 0: prepend language directive
+        if lang:
+            lang_name = {
+                "pt": "Portuguese (Brazilian)",
+                "pt-br": "Portuguese (Brazilian)",
+                "en": "English",
+                "es": "Spanish",
+                "fr": "French",
+                "it": "Italian",
+                "de": "German",
+                "ja": "Japanese",
+            }.get(lang.lower(), lang)
+            lang_header = (
+                f"## OUTPUT LANGUAGE: {lang_name}\n"
+                f"ALL narrative text, dialogue, scene descriptions, and any written output "
+                f"MUST be in {lang_name}. Technical JSON field names stay in English, but "
+                f"VALUES (descriptions, dialogue, notes) must be in {lang_name}.\n\n"
+            )
+            return lang_header + combined
+
+        return combined
     except Exception as e:
         logger.warning(f"resolve_agent_prompt({agent_id}) failed, using fallback: {e}")
         return fallback

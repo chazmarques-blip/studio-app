@@ -14,6 +14,7 @@ import { AvatarModal } from '../components/pipeline/AvatarModal';
 import { AvatarLibraryModalV2 } from '../components/pipeline/AvatarLibraryModalV2';
 import { SynergyBadge } from '../components/pipeline/SynergyBadge';
 import { NewProjectModal } from '../components/NewProjectModal';
+import { QualityDashboardStrip } from '../components/QualityDashboardStrip';
 import { resolveImageUrl } from '../utils/resolveImageUrl';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -242,6 +243,46 @@ function ProjectRow({ project, onSelect, onDelete, onRename, onSyncCharacters })
 
       {/* Status badge + actions — compact, fixed widths for alignment */}
       <div className="flex items-center gap-1 shrink-0">
+        {/* Health Score badge (Thelma continuity) — only for video projects with audit */}
+        {!isBookProject && project.continuity_report?.score !== undefined && (
+          <div
+            data-testid={`health-score-${project.id}`}
+            title={`Continuidade (Thelma): ${project.continuity_report.score}/100${project.continuity_auto_fix?.regenerated_scenes ? ` · Auto-Fix: ${project.continuity_auto_fix.regenerated_scenes.length} cenas` : ''}`}
+            className={`h-6 min-w-[34px] px-1.5 rounded-full flex items-center justify-center gap-0.5 text-[10px] font-bold ${
+              project.continuity_report.score >= 85
+                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                : project.continuity_report.score >= 70
+                ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                : 'bg-red-100 text-red-700 border border-red-200'
+            }`}
+          >
+            <span>
+              {project.continuity_report.score >= 85 ? '🟢' : project.continuity_report.score >= 70 ? '🟡' : '🔴'}
+            </span>
+            <span className="tabular-nums">{project.continuity_report.score}</span>
+          </div>
+        )}
+
+        {/* Book Quality badge (Glen Keane) */}
+        {isBookProject && project.book_continuity_report?.score !== undefined && (
+          <div
+            data-testid={`book-quality-${project.id}`}
+            title={`Qualidade Visual (Glen Keane): ${project.book_continuity_report.score}/100`}
+            className={`h-6 min-w-[34px] px-1.5 rounded-full flex items-center justify-center gap-0.5 text-[10px] font-bold ${
+              project.book_continuity_report.score >= 90
+                ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                : project.book_continuity_report.score >= 80
+                ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                : 'bg-red-100 text-red-700 border border-red-200'
+            }`}
+          >
+            <span>
+              {project.book_continuity_report.score >= 90 ? '🟢' : project.book_continuity_report.score >= 80 ? '🟡' : '🔴'}
+            </span>
+            <span className="tabular-nums">{project.book_continuity_report.score}</span>
+          </div>
+        )}
+
         <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
           (isBookProject ? bookPdfUrl : progress.percent === 100)
             ? 'bg-gradient-to-br from-violet-500 to-orange-500 shadow-[0_0_10px_rgba(139,92,246,0.3)]'
@@ -1602,6 +1643,9 @@ export default function StudioPage() {
       {/* ═══ CONTENT ═══ */}
       <div className="px-6 py-5 pb-28">
         <div className="max-w-7xl mx-auto">
+          {/* Quality Dashboard — tenant-wide KPIs (video continuity, auto-fix, cost) */}
+          {!selectedProject && <QualityDashboardStrip />}
+
           {/* Company Selector — compact chip (expandable) */}
           {!selectedProject && companies.length > 0 && (
             <div className="mb-4">

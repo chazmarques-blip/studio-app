@@ -18,7 +18,7 @@ def _parse_time(time_str: str) -> int:
         if len(parts) == 2:
             return int(parts[0]) * 60 + int(parts[1])
         return int(parts[0])
-    except:
+    except Exception:
         return 12  # default 12s
 
 
@@ -140,7 +140,7 @@ def generate_screenplay_parallel(
     # 🔗 Registry override — Aaron Sorkin (screenwriter) for parallel foundation
     try:
         from .agents_registry import resolve_agent_prompt
-        system = resolve_agent_prompt("screenwriter_agent", fallback=system_template)
+        system = resolve_agent_prompt("screenwriter_agent", fallback=system_template, lang=lang)
     except Exception as _e:
         logger.warning(f"ParallelAgents: registry override failed: {_e}")
         system = system_template

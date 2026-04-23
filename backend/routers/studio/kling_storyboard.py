@@ -1159,7 +1159,7 @@ def _parse_frames_response(response: str, expected_count: int, start_index: int)
         data = json.loads(response)
         if isinstance(data, list) and len(data) > 0:
             return data
-    except:
+    except Exception:
         pass
     
     # Try extracting JSON array with regex
@@ -1186,11 +1186,11 @@ def _parse_frames_response(response: str, expected_count: int, start_index: int)
                 frame = json.loads(obj_str)
                 if 'frame_number' in frame:
                     frames.append(frame)
-            except:
+            except Exception:
                 continue
         if len(frames) > 0:
             return frames
-    except:
+    except Exception:
         pass
     
     return []
@@ -1525,7 +1525,7 @@ def _parse_time_to_seconds(time_str: str) -> int:
         elif len(parts) == 3:
             return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
         return 0
-    except:
+    except Exception:
         return 0
 
 
@@ -2399,7 +2399,7 @@ def _generate_audio_overlay_background(tenant_id: str, project_id: str):
         finally:
             try:
                 shutil.rmtree(tmpdir)
-            except:
+            except Exception:
                 pass
     
     except Exception as e:

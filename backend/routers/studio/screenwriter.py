@@ -382,7 +382,7 @@ def _run_screenwriter_background(tenant_id: str, project_id: str, message: str, 
         # Otherwise the hardcoded template (fallback) is used — zero breakage.
         try:
             from .agents_registry import resolve_agent_prompt
-            system = resolve_agent_prompt("screenwriter_agent", fallback=system_template)
+            system = resolve_agent_prompt("screenwriter_agent", fallback=system_template, lang=lang)
         except Exception as _e:
             logger.warning(f"Screenwriter: registry override failed, using fallback: {_e}")
             system = system_template

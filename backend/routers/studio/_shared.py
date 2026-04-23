@@ -407,7 +407,7 @@ def _parse_json(text):
     try:
         # Try parsing whole text first
         return json.loads(text)
-    except:
+    except Exception:
         pass
 
     # Try extracting object
@@ -422,7 +422,7 @@ def _parse_json(text):
                     depth -= 1
                 if depth == 0:
                     return json.loads(text[start:i+1])
-        except:
+        except Exception:
             pass
 
     # Try extracting array
@@ -437,7 +437,7 @@ def _parse_json(text):
                     depth -= 1
                 if depth == 0:
                     return json.loads(text[start:i+1])
-        except:
+        except Exception:
             pass
 
     # JSON was truncated — try to repair

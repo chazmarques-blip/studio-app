@@ -21,6 +21,7 @@ from . import book_editable  # Quality gate + editable spreads JSON + regenerate
 from . import agents_activity  # NEW — real-time "active agent" tracker for UI feedback
 from . import agents_metrics  # NEW — aggregate metrics (activations, cost, latency)
 from . import multi_format_export  # NEW — 9:16/1:1/4:5 reformat exports
+from . import quality_dashboard  # NEW — tenant-wide quality KPIs
 from . import cost_estimator
 from . import dialogue_timeline  # NEW
 from . import cinematography  # NEW

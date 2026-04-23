@@ -190,7 +190,7 @@ async def _review_scene_batch_with_progress(batch_scenes, characters, project_me
             progress["status"] = f"reviewing_batch_{batch_num}"
             progress["last_update"] = datetime.now(timezone.utc).isoformat()  # WATCHDOG TIMESTAMP
             _update_project_field(tenant_id, project_id, {"director_progress": progress})
-    except:
+    except Exception:
         pass  # Don't fail if progress update fails
     
     # Do the actual review
@@ -213,7 +213,7 @@ async def _review_scene_batch_with_progress(batch_scenes, characters, project_me
             progress["last_update"] = datetime.now(timezone.utc).isoformat()  # WATCHDOG TIMESTAMP
             
             _update_project_field(tenant_id, project_id, {"director_progress": progress})
-    except:
+    except Exception:
         pass
     
     return result

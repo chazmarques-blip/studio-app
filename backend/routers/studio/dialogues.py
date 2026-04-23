@@ -8,7 +8,7 @@ def _parse_time_to_seconds(time_str: str) -> int:
         if len(parts) == 2:
             return int(parts[0]) * 60 + int(parts[1])
         return int(parts[0])
-    except:
+    except Exception:
         return 12  # default 12s
 
 # ══ MASTER DIALOGUE WRITER SYSTEM ══
@@ -351,11 +351,11 @@ Write a BEAUTIFUL storybook passage that captures this moment."""
         try:
             from .agents_registry import resolve_agent_prompt
             if req.mode == "dubbed":
-                system = resolve_agent_prompt("dialogue_writer_agent", fallback=system)
+                system = resolve_agent_prompt("dialogue_writer_agent", fallback=system, lang=lang)
             elif req.mode == "narrated":
-                system = resolve_agent_prompt("narrator_agent", fallback=system)
+                system = resolve_agent_prompt("narrator_agent", fallback=system, lang=lang)
             else:
-                system = resolve_agent_prompt("author_agent", fallback=system)
+                system = resolve_agent_prompt("author_agent", fallback=system, lang=lang)
         except Exception as _e:
             logger.warning(f"Dialogues: registry override failed, using fallback: {_e}")
 
