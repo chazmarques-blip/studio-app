@@ -20,6 +20,7 @@ import { SynergyBadge } from './pipeline/SynergyBadge';
 import { ContinuityAuditModal } from './pipeline/ContinuityAuditModal';
 import { PipelineTrackerInline } from './pipeline/PipelineTrackerInline';
 import { ActiveAgentIndicator } from './pipeline/ActiveAgentIndicator';
+import { MultiFormatExport } from './pipeline/MultiFormatExport';
 import { SortableSceneWrapper } from './pipeline/SortableSceneWrapper';
 import { AutonomousWorkflow } from './AutonomousWorkflow';
 import { NewProjectModal } from './NewProjectModal';
@@ -4029,6 +4030,7 @@ export const DirectedStudio = memo(function DirectedStudio({
 
                 {/* TAB: Filme */}
                 {resultTab === 'filme' && heroOut && (
+                  <>
                   <div className="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm" data-testid="deliverable-filme-completo">
                     <div className="relative cursor-pointer" onClick={() => setPreviewModal({ type: 'video', data: { url: heroOut.url, scene_number: 0, allVideos: [] } })}>
                       <video className="w-full aspect-video object-contain bg-black" data-testid="result-video-complete" src={heroOut.url} preload="metadata" />
@@ -4064,6 +4066,9 @@ export const DirectedStudio = memo(function DirectedStudio({
                       </div>
                     </div>
                   </div>
+                  {/* Multi-format export panel */}
+                  <MultiFormatExport projectId={projectId} lang={lang} />
+                  </>
                 )}
 
                 {/* TAB: Livro Animado — inline viewer */}

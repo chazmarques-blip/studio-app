@@ -56,29 +56,16 @@ const LandingV2 = React.lazy(() => import('./pages/LandingV2'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Onboarding = React.lazy(() => import('./pages/Onboarding'));
 const OnboardingAgentLang = React.lazy(() => import('./pages/OnboardingAgentLang'));
-const Dashboard = React.lazy(() => import('./pages/DashboardStudio')); // StudioX Dashboard
-const Chat = React.lazy(() => import('./pages/Chat'));
-const Agents = React.lazy(() => import('./pages/Agents'));
-const AgentBuilder = React.lazy(() => import('./pages/AgentBuilder'));
-const AgentSandbox = React.lazy(() => import('./pages/AgentSandbox'));
-const AgentConfig = React.lazy(() => import('./pages/AgentConfig'));
-const CRM = React.lazy(() => import('./pages/CRM'));
-const LeadDetail = React.lazy(() => import('./pages/LeadDetail'));
-const CampaignBuilder = React.lazy(() => import('./pages/CampaignBuilder'));
 const SettingsPage = React.lazy(() => import('./pages/Settings'));
 const ChannelConnection = React.lazy(() => import('./pages/ChannelConnection'));
-const HandoffHuman = React.lazy(() => import('./pages/HandoffHuman'));
 const UpsellScreen = React.lazy(() => import('./pages/UpsellScreen'));
 const Pricing = React.lazy(() => import('./pages/Pricing'));
 const GoogleIntegration = React.lazy(() => import('./pages/GoogleIntegration'));
-const Marketing = React.lazy(() => import('./pages/Marketing'));
-const MarketingStudio = React.lazy(() => import('./pages/MarketingStudio'));
-const StudioPage = React.lazy(() => import('./pages/StudioPage')); // NEW: Exclusive Studio Page
-const AgentsPage = React.lazy(() => import('./pages/AgentsPage')); // NEW: AI Agents Registry
+const StudioPage = React.lazy(() => import('./pages/StudioPage'));
+const AgentsPage = React.lazy(() => import('./pages/AgentsPage'));
 const InteractiveBook = React.lazy(() => import('./pages/InteractiveBook'));
 const BookStudio = React.lazy(() => import('./pages/BookStudio'));
-const BookEditorPage = React.lazy(() => import('./pages/BookEditorPage')); // NEW: BookFactory picturebook builder
-const TrafficHub = React.lazy(() => import('./pages/TrafficHub'));
+const BookEditorPage = React.lazy(() => import('./pages/BookEditorPage'));
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -135,30 +122,19 @@ function App() {
             {/* Legacy /dashboard → redirect to new compact /studio (Projetos) */}
             <Route path="/dashboard" element={<Navigate to="/studio" replace />} />
             <Route path="/studio" element={<StudioPage />} />
-            <Route path="/chat" element={<Chat />} />
             {/* /agents now renders the new AgentsPage (StudioX AI Agents Registry) */}
             <Route path="/agents" element={<AgentsPage />} />
             <Route path="/studio/agents" element={<AgentsPage />} />
-            <Route path="/crm" element={<CRM />} />
-            <Route path="/marketing" element={<Marketing />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/pricing" element={<Pricing />} />
           </Route>
           {/* Full-screen pages (no bottom nav) */}
-          <Route path="/agents/builder" element={<ProtectedRoute><AgentBuilder /></ProtectedRoute>} />
-          <Route path="/agents/sandbox" element={<ProtectedRoute><AgentSandbox /></ProtectedRoute>} />
-          <Route path="/agents/:agentId/config" element={<ProtectedRoute><AgentConfig /></ProtectedRoute>} />
-          <Route path="/crm/lead/:id" element={<ProtectedRoute><LeadDetail /></ProtectedRoute>} />
-          <Route path="/campaigns/new" element={<ProtectedRoute><CampaignBuilder /></ProtectedRoute>} />
-          <Route path="/chat/handoff/:id" element={<ProtectedRoute><HandoffHuman /></ProtectedRoute>} />
           <Route path="/settings/channels" element={<ProtectedRoute><ChannelConnection /></ProtectedRoute>} />
           <Route path="/settings/google" element={<ProtectedRoute><GoogleIntegration /></ProtectedRoute>} />
-          <Route path="/marketing/studio" element={<ProtectedRoute><MarketingStudio /></ProtectedRoute>} />
           <Route path="/studio/book/:projectId" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
           <Route path="/studio/book/:projectId/editor" element={<ProtectedRoute><BookEditorPage /></ProtectedRoute>} />
           <Route path="/studio/book" element={<ProtectedRoute><BookStudio /></ProtectedRoute>} />
           <Route path="/book/:projectId" element={<InteractiveBook />} />
-          <Route path="/traffic-hub" element={<ProtectedRoute><TrafficHub /></ProtectedRoute>} />
           <Route path="/upgrade" element={<ProtectedRoute><UpsellScreen /></ProtectedRoute>} />
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -20,6 +20,7 @@ from . import continuity_audit  # Video (Thelma) + Book visual (Glen Keane) cont
 from . import book_editable  # Quality gate + editable spreads JSON + regenerate image
 from . import agents_activity  # NEW — real-time "active agent" tracker for UI feedback
 from . import agents_metrics  # NEW — aggregate metrics (activations, cost, latency)
+from . import multi_format_export  # NEW — 9:16/1:1/4:5 reformat exports
 from . import cost_estimator
 from . import dialogue_timeline  # NEW
 from . import cinematography  # NEW

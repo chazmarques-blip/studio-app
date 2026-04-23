@@ -17,17 +17,10 @@ from core.exceptions import AppError, app_error_handler
 from core.middleware import ObservabilityMiddleware, UploadSizeMiddleware
 
 from routers.auth import router as auth_router
-from routers.agents import router as agents_router
-from routers.conversations import router as conversations_router
-from routers.leads import router as leads_router
-from routers.ai import router as ai_router
 from routers.whatsapp import router as whatsapp_router
 from routers.channels import router as channels_router
-from routers.telegram import router as telegram_router
 from routers.google import router as google_router
 from routers.campaigns import router as campaigns_router
-from routers.pipeline import router as pipeline_router
-from routers.agent_generator import router as agent_generator_router
 from routers.data import router as data_router
 from routers.avatar import router as avatar_router
 from routers.studio import router as studio_router
@@ -269,17 +262,10 @@ async def upgrade_plan(data: dict, user=Depends(get_current_user)):
 
 # ── Include All Routers ──
 app.include_router(auth_router)
-app.include_router(agents_router)
-app.include_router(conversations_router)
-app.include_router(leads_router)
-app.include_router(ai_router)
 app.include_router(whatsapp_router)
 app.include_router(channels_router)
-app.include_router(telegram_router)
 app.include_router(google_router)
-app.include_router(pipeline_router)
 app.include_router(campaigns_router)
-app.include_router(agent_generator_router)
 app.include_router(data_router)
 app.include_router(avatar_router)
 app.include_router(studio_router)
