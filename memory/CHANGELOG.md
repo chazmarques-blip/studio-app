@@ -1,5 +1,51 @@
 # StudioX Changelog
 
+## 2026-04-23 (Session — P2 (3ª rodada): Quality Dashboard + Multi-idioma + Cleanup)
+
+### Requisito do usuário
+Executar P2 completo (o que for viável) + testar tudo. Deferir os massivos.
+
+### O que foi implementado
+
+**📊 P2 — Dashboard de Qualidade Global**
+- Novo backend `quality_dashboard.py` — endpoint `GET /api/studio/quality-dashboard` agrega:
+  - Videos: total, complete, audited, avg_continuity_score, green/yellow/red counts
+  - Books: total, audited, avg_quality_score
+  - Auto-fix: runs count + scenes_regenerated total
+  - Cost: total_usd, total_activations
+  - Hot issues: top 10 projetos com score < 70 (nome, id, issues_count, auto_fix_status)
+- Novo frontend `QualityDashboardStrip.jsx` — renderiza no topo do StudioPage com:
+  - 4 StatCards (Vídeos, Continuidade, Auto-Fix, Custo)
+  - Hot issues banner vermelho com até 5 projetos problemáticos
+  - Polling 30s com retry logic para aguardar AuthContext (fix de race condition)
+- Health score badges nos project cards (🟢 ≥85, 🟡 70-84, 🔴 <70) — Thelma para video, Glen Keane para livro
+- **Testado ao vivo**: JONAS + ABRAO aparecem como 🔴45, Manual do Pulmeranea 🟡85
+
+**🌐 P2 — Multi-idioma real de prompts**
+- `resolve_agent_prompt(agent_id, fallback, lang=None)` agora aceita parâmetro `lang`
+- Quando `lang` é fornecido, prepende bloco `"## OUTPUT LANGUAGE: Portuguese (Brazilian)\nALL narrative text... MUST be in {lang}"` antes do mindset+agent prompt
+- Mapa de idiomas: pt, pt-br, en, es, fr, it, de, ja → nomes completos
+- Pipelines atualizados para passar `lang=lang`: screenwriter, dialogues (3 call sites), parallel_agents, narration (2 call sites)
+- Backward-compatible: sem `lang`, comportamento antigo
+
+**🧹 P2 — Cleanup naked except:**
+- 33 naked `except:` trocados por `except Exception:` em todos os routers
+- Previne swallow silencioso de `KeyboardInterrupt`/`SystemExit`
+- Zero mudanças comportamentais, apenas robustez
+
+**⏭️ Deferidos (motivo: escopo massivo / risco alto)**
+- DirectedStudio Refactor Fase 2 (4606 linhas → Context Provider) — exige sessão inteira dedicada
+- Dark mode completo (CSS variables em ~50 componentes) — design decision + refactor pesado
+- WebSocket real-time (substituir polling) — infra change
+- Pipeline asyncio migration (Sora polling) — Sora client roda em ThreadPoolExecutor, time.sleep bloqueia worker não event loop → ganho marginal vs risco
+- Migrar avatar states para useAvatarManager.js — hook incompleto vs StudioPage (5 estados faltando)
+
+### Testes
+- Testing Agent iteration_146: **Backend 21/21 passed (100%)**, **Frontend 100%**, **zero regressões**
+- Minor fix aplicado pelo testing agent: race condition no QualityDashboardStrip com AuthContext — adicionado retry logic (300ms, até 10 tentativas) aguardando auth header
+
+
+
 ## 2026-04-23 (Session — P0 Crítico + P1 Alto Impacto: Vídeos Perfeitos)
 
 ### Requisito do usuário
