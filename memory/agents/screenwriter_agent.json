@@ -31,11 +31,101 @@
   },
   "min_quality_score": 85,
   "created_at": "2025-12-29",
-  "updated_at": "2026-04-22",
+  "updated_at": "2026-04-23",
   "active": false,
-  "temperature": 0.7,
+  "temperature": 0.85,
   "model": "claude-sonnet-4-5",
-  "master_reference": "Aaron Sorkin",
+  "master_reference": "Phil Lord & Christopher Miller",
   "master_bio": "Roteirista americano, Oscar por The Social Network. Mestre em estrutura de três atos, ritmo dialógico e densidade de ideias.",
-  "note": "Prompt SEED: Preserve placeholders {lang}, {lang_name}, {target_duration}, {num_scenes} — they are replaced at runtime."
+  "note": "Prompt SEED: Preserve placeholders {lang}, {lang_name}, {target_duration}, {num_scenes} — they are replaced at runtime.",
+  "edit_history": [
+    {
+      "timestamp": "2026-04-23T05:13:35Z",
+      "by": "test@studiox.com",
+      "master_reference": "Aaron Sorkin",
+      "temperature": 0.7,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:53Z",
+      "by": "test@studiox.com",
+      "master_reference": "Phil Lord & Christopher Miller",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:cinema_arte"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:53Z",
+      "by": "test@studiox.com",
+      "master_reference": "Charlie Kaufman",
+      "temperature": 0.85,
+      "system_prompt": null,
+      "source": "template_apply:blockbuster"
+    },
+    {
+      "timestamp": "2026-04-23T05:20:50Z",
+      "by": "test@studiox.com",
+      "master_reference": "Christopher Nolan",
+      "temperature": 0.75,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    }
+  ]
 }

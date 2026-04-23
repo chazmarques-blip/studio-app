@@ -32,10 +32,100 @@
   },
   "min_quality_score": 85,
   "created_at": "2025-12-29",
-  "updated_at": "2026-04-22",
+  "updated_at": "2026-04-23",
   "active": false,
-  "temperature": 0.7,
+  "temperature": 0.8,
   "model": "claude-sonnet-4-5",
-  "master_reference": "Roger Deakins",
-  "master_bio": "Cinematógrafo britânico, duas vezes Oscar (1917, Blade Runner 2049). Mestre em composição visual, iluminação natural e paleta emocional."
+  "master_reference": "Genndy Tartakovsky",
+  "master_bio": "Cinematógrafo britânico, duas vezes Oscar (1917, Blade Runner 2049). Mestre em composição visual, iluminação natural e paleta emocional.",
+  "edit_history": [
+    {
+      "timestamp": "2026-04-23T05:13:35Z",
+      "by": "test@studiox.com",
+      "master_reference": "Roger Deakins",
+      "temperature": 0.7,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:53Z",
+      "by": "test@studiox.com",
+      "master_reference": "Genndy Tartakovsky",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:cinema_arte"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:53Z",
+      "by": "test@studiox.com",
+      "master_reference": "Roger Deakins",
+      "temperature": 0.7,
+      "system_prompt": null,
+      "source": "template_apply:blockbuster"
+    },
+    {
+      "timestamp": "2026-04-23T05:20:50Z",
+      "by": "test@studiox.com",
+      "master_reference": "Hoyte van Hoytema",
+      "temperature": 0.7,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    }
+  ]
 }

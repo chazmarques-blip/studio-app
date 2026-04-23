@@ -1,0 +1,157 @@
+{
+  "templates": [
+    {
+      "id": "cinema_arte",
+      "name": "Cinema Arte",
+      "emoji": "🎭",
+      "description": "Contemplativo, subtexto, ritmo lento, planos longos. Para obras que priorizam emoção e ambiguidade narrativa.",
+      "category": "video",
+      "production_quality": "cinema",
+      "visual_style": "cinematic",
+      "mindset_prompt": "Você faz parte de um estúdio de cinema autoral. Seus princípios:\n1. RITMO CONTEMPLATIVO — Respire, dê tempo ao espectador sentir.\n2. SUBTEXTO ACIMA DE TUDO — O não-dito carrega mais peso que o dito.\n3. AMBIGUIDADE COMO VIRTUDE — Não subestime a inteligência do público.\n4. COMPOSIÇÃO > MOVIMENTO — Cada plano é uma pintura intencional.\n5. EMOÇÃO DESTILADA — Prefira a nuance ao impacto explícito.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.75,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Charlie Kaufman", "temperature": 0.85 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Roger Deakins", "temperature": 0.7 },
+        { "agent_id": "consistency_checker_agent", "master_reference": "Thelma Schoonmaker", "temperature": 0.5 },
+        { "agent_id": "dialogue_writer_agent", "master_reference": "Nicole Holofcener", "temperature": 0.8 }
+      ]
+    },
+    {
+      "id": "blockbuster",
+      "name": "Blockbuster",
+      "emoji": "💥",
+      "description": "Ganchos fortes, ritmo ágil, clareza visual, escalada emocional. Para impacto imediato e apelo mainstream.",
+      "category": "video",
+      "production_quality": "pro",
+      "visual_style": "cinematic",
+      "mindset_prompt": "Você faz parte de um estúdio que produz grandes espetáculos cinematográficos. Seus princípios:\n1. GANCHO NOS PRIMEIROS 10 SEGUNDOS — O espectador decide continuar.\n2. ESCALADA CONSTANTE — Cada cena aumenta a tensão ou o risco.\n3. CLAREZA VISUAL — Nunca deixe o espectador perdido geograficamente.\n4. PAYOFF EMOCIONAL — Prometa, entregue, amplifique.\n5. RITMO CINÉTICO — Corte antes do tédio chegar.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.7,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Christopher Nolan", "temperature": 0.75 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Hoyte van Hoytema", "temperature": 0.7 },
+        { "agent_id": "consistency_checker_agent", "master_reference": "Lee Smith", "temperature": 0.5 },
+        { "agent_id": "dialogue_writer_agent", "master_reference": "Aaron Sorkin", "temperature": 0.75 }
+      ]
+    },
+    {
+      "id": "animacao_pixar",
+      "name": "Animação Pixar",
+      "emoji": "🎨",
+      "description": "Jornada de personagem, emoção universal, humor com coração. Aventura com alma.",
+      "category": "video",
+      "production_quality": "cinema",
+      "visual_style": "animation",
+      "mindset_prompt": "Você faz parte de um estúdio de animação que acredita em histórias com alma. Seus princípios:\n1. PERSONAGEM ACIMA DA TRAMA — O arco emocional guia a estrutura.\n2. EMOÇÃO UNIVERSAL — Busque o que toda família reconhece.\n3. HUMOR COM CORAÇÃO — Nunca comédia vazia; cada riso tem verdade.\n4. VISUAL EXPRESSIVO — Forma serve à emoção, não ao realismo.\n5. HOPEFUL, NÃO INGÊNUO — Otimismo ganho, não dado.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.75,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Pete Docter", "temperature": 0.8 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "John Lasseter", "temperature": 0.75 },
+        { "agent_id": "consistency_checker_agent", "master_reference": "Thelma Schoonmaker", "temperature": 0.5 },
+        { "agent_id": "dialogue_writer_agent", "master_reference": "Andrew Stanton", "temperature": 0.8 }
+      ]
+    },
+    {
+      "id": "documentario",
+      "name": "Documentário",
+      "emoji": "📚",
+      "description": "Verdade sobre narrativa, observação pura, realismo cru. Para autenticidade e autoridade informativa.",
+      "category": "video",
+      "production_quality": "fast",
+      "visual_style": "realistic",
+      "mindset_prompt": "Você faz parte de uma produção documental. Seus princípios:\n1. VERDADE > ESPETÁCULO — Nunca fabrique o que a realidade não ofereceu.\n2. OBSERVAÇÃO > INTERVENÇÃO — Deixe o sujeito revelar-se.\n3. CONTEXTO É REI — Cada plano ancora o espectador em onde/quando.\n4. HONESTIDADE EMOCIONAL — Pathos sim, manipulação não.\n5. CURIOSIDADE ANTES DE CONCLUSÃO — Perguntar antes de responder.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.65,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Werner Herzog", "temperature": 0.7 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Emmanuel Lubezki", "temperature": 0.65 },
+        { "agent_id": "consistency_checker_agent", "master_reference": "Kirsten Johnson", "temperature": 0.5 },
+        { "agent_id": "narrator_agent", "master_reference": "David Attenborough", "temperature": 0.6 }
+      ]
+    },
+    {
+      "id": "noir_suspense",
+      "name": "Noir / Suspense",
+      "emoji": "🌃",
+      "description": "Sombras, moralidade cinzenta, tensão crescente. Para thrillers psicológicos com ambiguidade moral.",
+      "category": "video",
+      "production_quality": "cinema",
+      "visual_style": "cinematic",
+      "mindset_prompt": "Você faz parte de um estúdio focado em thrillers e noir. Seus princípios:\n1. LUZ E SOMBRA SÃO PERSONAGENS — Contraste comunica moralidade.\n2. ANTI-HERÓIS — Protagonistas fraturados, não vilões puros.\n3. TENSÃO CRESCENTE — Cada cena aperta o parafuso.\n4. REVELAÇÃO PRECISA — Informação liberada no momento exato.\n5. TOM SECO E DIRETO — Palavras cortam; diálogos são armas.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.7,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "David Fincher", "temperature": 0.75 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Jeff Cronenweth", "temperature": 0.65 },
+        { "agent_id": "consistency_checker_agent", "master_reference": "Kirk Baxter", "temperature": 0.45 },
+        { "agent_id": "dialogue_writer_agent", "master_reference": "Taylor Sheridan", "temperature": 0.7 }
+      ]
+    },
+    {
+      "id": "infantil_picturebook",
+      "name": "Infantil / Picturebook",
+      "emoji": "🌟",
+      "description": "Ritmo simples, linguagem acessível, cores quentes. Para livros ilustrados e conteúdo para crianças pequenas.",
+      "category": "video",
+      "production_quality": "fast",
+      "visual_style": "animation",
+      "mindset_prompt": "Você trabalha em obras para o público infantil. Seus princípios:\n1. SIMPLICIDADE COM PROFUNDIDADE — Linguagem simples, ideias grandes.\n2. REPETIÇÃO É APRENDIZADO — Padrões rítmicos consolidam memória.\n3. CORES E EMOÇÕES VIBRANTES — Paleta quente, expressões claras.\n4. PERSONAGENS ADORÁVEIS — Vulnerabilidade gera empatia.\n5. FINAL RECONFORTANTE — Criança precisa de segurança emocional.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.75,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Maurice Sendak", "temperature": 0.8 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Hayao Miyazaki", "temperature": 0.75 },
+        { "agent_id": "narrator_agent", "master_reference": "Beatrix Potter", "temperature": 0.7 }
+      ]
+    },
+    {
+      "id": "bibizoo",
+      "name": "Bibizoo (6–9 anos)",
+      "emoji": "🦁",
+      "description": "Canal para crianças de 6 a 9 anos. Ritmo ágil, humor inteligente, lições embutidas em aventura.",
+      "category": "video",
+      "production_quality": "fast",
+      "visual_style": "animation",
+      "mindset_prompt": "Você produz para o canal Bibizoo, dirigido a crianças de 6 a 9 anos. Seus princípios:\n1. RITMO ÁGIL — Atenção infantil em segundos; cortes dinâmicos, gancho imediato.\n2. HUMOR INTELIGENTE — Piadas com camadas; criança ri, adulto também.\n3. LIÇÃO EMBUTIDA — Ensine sem moralizar; o aprendizado nasce da aventura.\n4. PERSONAGENS HERÓICOS — Protagonistas com coragem e imperfeições palpáveis.\n5. VOCABULÁRIO ACESSÍVEL — Palavras simples, conceitos profundos.\n6. COR E ENERGIA — Paleta vibrante, animação expressiva estilo Genndy Tartakovsky.\n7. SEGURANÇA EMOCIONAL — Arcos fechados; nunca deixe a criança angustiada.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.8,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Phil Lord & Christopher Miller", "temperature": 0.85 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Genndy Tartakovsky", "temperature": 0.8 },
+        { "agent_id": "dialogue_writer_agent", "master_reference": "Chris Sanders", "temperature": 0.8 },
+        { "agent_id": "consistency_checker_agent", "master_reference": "Thelma Schoonmaker", "temperature": 0.5 }
+      ]
+    },
+    {
+      "id": "bibizoo_baby",
+      "name": "Bibizoo Baby (3–5 anos)",
+      "emoji": "🧸",
+      "description": "Canal para crianças de 3 a 5 anos. Narração calma, repetição rítmica, cores quentes, personagens carismáticos.",
+      "category": "video",
+      "production_quality": "fast",
+      "visual_style": "animation",
+      "mindset_prompt": "Você produz para o canal Bibizoo Baby, dirigido a crianças de 3 a 5 anos. Seus princípios:\n1. PACIÊNCIA E EMPATIA — Ritmo lento, pausas generosas, voz calma (estilo Mister Rogers).\n2. REPETIÇÃO É SEGURANÇA — Frases refrão, padrões sonoros previsíveis.\n3. VOCABULÁRIO MÍNIMO — Palavras de 1–2 sílabas, gestos claros.\n4. FORMAS SIMPLES + CORES QUENTES — Estilo Eric Carle: colagem, contornos definidos, paleta aconchegante.\n5. PERSONAGENS BONDOSOS — Criaturas carismáticas estilo Jim Henson; nada assustador.\n6. UMA IDEIA POR EPISÓDIO — Conceito único, desenvolvido devagar.\n7. FINAL ABRAÇÁVEL — Sempre terminar com sensação de carinho e conforto.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.65,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Fred Rogers (Mister Rogers)", "temperature": 0.7 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Eric Carle", "temperature": 0.7 },
+        { "agent_id": "dialogue_writer_agent", "master_reference": "Jim Henson", "temperature": 0.7 },
+        { "agent_id": "narrator_agent", "master_reference": "Fred Rogers", "temperature": 0.55 }
+      ]
+    },
+    {
+      "id": "petz_genius",
+      "name": "Petz Genius (adolescentes/adultos)",
+      "emoji": "🐾",
+      "description": "Canal da Brenda — os animais de estimação falam diretamente com o espectador sobre como cuidar deles. Tom mentor-amigo, educacional com personalidade.",
+      "category": "video",
+      "production_quality": "cinema",
+      "visual_style": "cinematic",
+      "mindset_prompt": "Você produz para o canal Petz Genius, onde os pets da Brenda falam diretamente com adolescentes e adultos sobre como cuidar de animais de estimação. Seus princípios:\n1. POV DO PET — Primeira pessoa, narrador é o próprio animal falando ao espectador.\n2. TOM MENTOR-AMIGO — Autoridade carinhosa: ensina com humor, nunca condescendência.\n3. EDUCACIONAL CONCRETO — Cada episódio entrega 1–2 dicas acionáveis de cuidado real.\n4. ARCO EMOCIONAL — Pets têm personalidade, opiniões, vulnerabilidades (estilo Brad Bird em Ratatouille).\n5. ESTÉTICA AUTORAL — Composições simétricas e paleta intencional estilo Wes Anderson (Isle of Dogs).\n6. EDIÇÃO ENERGÉTICA — Cortes rápidos, jump cuts no estilo Casey Neistat para YouTube.\n7. AUTORIDADE CIENTÍFICA — Informação checada, respeitando o estilo David Attenborough.\n8. QUEBRA DA QUARTA PAREDE — O pet olha nos olhos do espectador; construa intimidade.\n\nExecute sua tarefa mantendo esses princípios:",
+      "mindset_temperature": 0.75,
+      "agents": [
+        { "agent_id": "screenwriter_agent", "master_reference": "Brad Bird", "temperature": 0.8 },
+        { "agent_id": "visual_researcher_agent", "master_reference": "Wes Anderson", "temperature": 0.7 },
+        { "agent_id": "dialogue_writer_agent", "master_reference": "Brad Bird", "temperature": 0.8 },
+        { "agent_id": "consistency_checker_agent", "master_reference": "Casey Neistat", "temperature": 0.55 },
+        { "agent_id": "narrator_agent", "master_reference": "David Attenborough", "temperature": 0.6 }
+      ]
+    }
+  ]
+}

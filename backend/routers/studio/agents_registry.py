@@ -429,6 +429,166 @@ async def playground_test(req: PlaygroundRequest, user=Depends(get_current_user)
 
 
 
+# ─── Mindset Templates (Dream Team bundles) ──────────────────
+MINDSET_TEMPLATES_FILE = "/app/memory/agents/_mindset_templates.json"
+
+
+def _load_mindset_templates() -> list:
+    try:
+        if not os.path.exists(MINDSET_TEMPLATES_FILE):
+            return []
+        with open(MINDSET_TEMPLATES_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f) or {}
+        return data.get("templates", [])
+    except Exception as e:
+        logger.warning(f"mindset_templates load failed: {e}")
+        return []
+
+
+@router.get("/agents/mindset-templates")
+async def list_mindset_templates(user=Depends(get_current_user)):
+    """List all available mindset templates (Dream Team bundles)."""
+    templates = _load_mindset_templates()
+    # Attach which template is currently active per category (if any)
+    mindsets = _load_mindsets()
+    active_by_category = {}
+    for cat, m in (mindsets or {}).items():
+        if m and m.get("active") and m.get("template_id"):
+            active_by_category[cat] = m.get("template_id")
+    return {
+        "templates": templates,
+        "active_by_category": active_by_category,
+        "count": len(templates),
+    }
+
+
+class ApplyTemplateRequest(BaseModel):
+    template_id: str
+    category: Opt[str] = "video"
+    apply_to_agents: Opt[bool] = True  # also update master_reference + temperature on each agent
+    overwrite_system_prompt: Opt[bool] = False  # stronger mode (not default for safety)
+
+
+@router.post("/agents/mindset-templates/apply")
+async def apply_mindset_template(req: ApplyTemplateRequest, user=Depends(get_current_user)):
+    """
+    Apply a mindset template (Dream Team) to:
+      - The category mindset (system_prompt + temperature + activate it)
+      - Each listed agent: master_reference + temperature (and optionally system_prompt)
+    All changes are appended to `edit_history` for rollback.
+    """
+    templates = _load_mindset_templates()
+    tpl = next((t for t in templates if t.get("id") == req.template_id), None)
+    if not tpl:
+        raise HTTPException(status_code=404, detail=f"Template not found: {req.template_id}")
+
+    category = req.category or tpl.get("category") or "video"
+    user_email = (user.get("email") if isinstance(user, dict) else getattr(user, "email", None)) or "unknown"
+    ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # ─── 1. Apply mindset prompt to category ───
+    mindsets = _load_mindsets()
+    prev_mindset = mindsets.get(category) or {}
+    history = list(prev_mindset.get("edit_history", []))
+    history.append({
+        "timestamp": ts,
+        "by": user_email,
+        "system_prompt": prev_mindset.get("system_prompt"),
+        "temperature": prev_mindset.get("temperature"),
+        "source": f"template_apply:{req.template_id}",
+    })
+    history = history[-20:]
+
+    mindsets[category] = {
+        **prev_mindset,
+        "id": prev_mindset.get("id", f"mindset_{category}"),
+        "category": category,
+        "title": prev_mindset.get("title") or f"Mentalidade Global · {category}",
+        "master_reference": tpl.get("name"),
+        "active": True,
+        "template_id": req.template_id,
+        "system_prompt": tpl.get("mindset_prompt", ""),
+        "temperature": tpl.get("mindset_temperature", 0.7),
+        "edit_history": history,
+        "updated_at": datetime.utcnow().strftime("%Y-%m-%d"),
+    }
+    _save_mindsets(mindsets)
+
+    # ─── 2. Apply per-agent overrides ───
+    agent_updates = []
+    if req.apply_to_agents:
+        for a_cfg in tpl.get("agents") or []:
+            aid = a_cfg.get("agent_id")
+            if not aid:
+                continue
+            path = _resolve_agent_path(aid)
+            if not path:
+                logger.warning(f"apply_template: agent not found: {aid}")
+                continue
+            data = _load_agent_file(path) or {}
+
+            # Backup to agent's edit_history
+            a_history = list(data.get("edit_history", []))
+            a_history.append({
+                "timestamp": ts,
+                "by": user_email,
+                "master_reference": data.get("master_reference"),
+                "temperature": data.get("temperature"),
+                "system_prompt": data.get("system_prompt") if req.overwrite_system_prompt else None,
+                "source": f"template_apply:{req.template_id}",
+            })
+            a_history = a_history[-20:]
+
+            data["master_reference"] = a_cfg.get("master_reference") or data.get("master_reference")
+            if a_cfg.get("temperature") is not None:
+                data["temperature"] = a_cfg.get("temperature")
+            if req.overwrite_system_prompt and a_cfg.get("system_prompt"):
+                data["system_prompt"] = a_cfg["system_prompt"]
+            data["edit_history"] = a_history
+            data["updated_at"] = datetime.utcnow().strftime("%Y-%m-%d")
+
+            try:
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                agent_updates.append({
+                    "agent_id": aid,
+                    "master_reference": data["master_reference"],
+                    "temperature": data.get("temperature"),
+                })
+            except Exception as e:
+                logger.error(f"apply_template: failed to save agent {aid}: {e}")
+
+    logger.info(
+        f"MindsetTemplates: applied '{req.template_id}' to category '{category}' "
+        f"(agents updated: {len(agent_updates)}, by: {user_email})"
+    )
+    return {
+        "status": "applied",
+        "template_id": req.template_id,
+        "template_name": tpl.get("name"),
+        "category": category,
+        "mindset_activated": True,
+        "agents_updated": agent_updates,
+        "production_quality": tpl.get("production_quality"),
+        "visual_style": tpl.get("visual_style"),
+    }
+
+
+@router.post("/agents/mindset-templates/deactivate")
+async def deactivate_mindset_template(category: str = "video", user=Depends(get_current_user)):
+    """Deactivate the current category mindset (does not restore agent overrides)."""
+    mindsets = _load_mindsets()
+    m = mindsets.get(category)
+    if not m:
+        raise HTTPException(status_code=404, detail=f"Mindset not found: {category}")
+    m["active"] = False
+    m["template_id"] = None
+    m["updated_at"] = datetime.utcnow().strftime("%Y-%m-%d")
+    mindsets[category] = m
+    _save_mindsets(mindsets)
+    return {"status": "deactivated", "category": category}
+
+
 # ─── Export / Import (Dream Team backup & share) ──────────────
 @router.get("/agents/export")
 async def export_agents_config(user=Depends(get_current_user)):

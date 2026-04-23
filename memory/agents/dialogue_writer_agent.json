@@ -41,10 +41,100 @@
     }
   ],
   "created_at": "2025-12-29",
-  "updated_at": "2026-04-22",
+  "updated_at": "2026-04-23",
   "active": false,
-  "temperature": 0.7,
+  "temperature": 0.8,
   "model": "claude-sonnet-4-5",
-  "master_reference": "Quentin Tarantino",
-  "master_bio": "Roteirista/diretor americano. Reconhecido por diálogos em camadas, subtexto, ritmo cultural e pop references naturais."
+  "master_reference": "Chris Sanders",
+  "master_bio": "Roteirista/diretor americano. Reconhecido por diálogos em camadas, subtexto, ritmo cultural e pop references naturais.",
+  "edit_history": [
+    {
+      "timestamp": "2026-04-23T05:13:35Z",
+      "by": "test@studiox.com",
+      "master_reference": "Quentin Tarantino",
+      "temperature": 0.7,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:51Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:52Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:53Z",
+      "by": "test@studiox.com",
+      "master_reference": "Chris Sanders",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:cinema_arte"
+    },
+    {
+      "timestamp": "2026-04-23T05:17:53Z",
+      "by": "test@studiox.com",
+      "master_reference": "Nicole Holofcener",
+      "temperature": 0.8,
+      "system_prompt": null,
+      "source": "template_apply:blockbuster"
+    },
+    {
+      "timestamp": "2026-04-23T05:20:50Z",
+      "by": "test@studiox.com",
+      "master_reference": "Aaron Sorkin",
+      "temperature": 0.75,
+      "system_prompt": null,
+      "source": "template_apply:bibizoo"
+    }
+  ]
 }

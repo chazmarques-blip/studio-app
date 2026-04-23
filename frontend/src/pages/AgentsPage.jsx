@@ -5,8 +5,9 @@ import {
   Bot, Video, BookOpen, Music, Save, X, Search,
   Sparkles, RotateCcw, History, Power, PowerOff, FileText,
   Edit3, ChevronRight, Brain, Play, Loader2, Award,
-  BarChart3, Download, Upload, DollarSign, Clock, Zap
+  BarChart3, Download, Upload, DollarSign, Clock, Zap, Layers
 } from 'lucide-react';
+import MindsetTemplatesPicker from '../components/MindsetTemplatesPicker';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -600,6 +601,8 @@ export function AgentsPage() {
   const [editingAgent, setEditingAgent] = useState(null);
   const [editingMindset, setEditingMindset] = useState(null);
   const [metricsOpen, setMetricsOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [templatesCategory, setTemplatesCategory] = useState('video');
   const fileInputRef = useRef(null);
 
   const load = async () => {
@@ -720,6 +723,14 @@ export function AgentsPage() {
               title="Ver métricas dos agentes"
             >
               <BarChart3 size={12} /> Métricas
+            </button>
+            <button
+              onClick={() => { setTemplatesCategory(tab === 'book' ? 'book' : tab === 'audio' ? 'audio' : 'video'); setTemplatesOpen(true); }}
+              data-testid="btn-open-templates"
+              className="h-7 inline-flex items-center gap-1 px-2.5 rounded-md bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-[11px] font-semibold text-white shadow-sm transition"
+              title="Aplicar Dream Team (templates de mentalidade)"
+            >
+              <Layers size={12} /> Dream Team
             </button>
             <button
               onClick={handleExport}
@@ -855,6 +866,12 @@ export function AgentsPage() {
       {metricsOpen && (
         <MetricsModal agents={agents} onClose={() => setMetricsOpen(false)} />
       )}
+      <MindsetTemplatesPicker
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        category={templatesCategory}
+        onApplied={load}
+      />
     </div>
   );
 }
