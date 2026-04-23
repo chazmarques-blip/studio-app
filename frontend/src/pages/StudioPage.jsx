@@ -917,10 +917,8 @@ export default function StudioPage() {
       console.log('🗑️ Deletando projeto:', project.id, project.name);
       console.log('📡 DELETE request to:', `${API}/studio/projects/${project.id}`);
       
-      const response = await axios.delete(`${API}/studio/projects/${project.id}`);
-      console.log('✅ DELETE response:', response.data);
-      
-      toast.success(l.deleted || 'Projeto excluído com sucesso!');
+      // Optimistic update: remove from UI immediately
+      setProjects((prev) => prev.filter((p) => p.id !== project.id));
       
       // Se o projeto deletado está selecionado, voltar para lista
       if (selectedProject?.id === project.id) {
@@ -928,9 +926,14 @@ export default function StudioPage() {
         setSearchParams({});
       }
       
-      // Recarregar lista
+      const response = await axios.delete(`${API}/studio/projects/${project.id}`);
+      console.log('✅ DELETE response:', response.data);
+      
+      toast.success(l.deleted || 'Projeto excluído com sucesso!');
+      
+      // Reconciliar com servidor
       await fetchProjects();
-      console.log('✅ Projeto deletado e lista recarregada');
+      console.log('✅ Projeto deletado e lista reconciliada');
     } catch (err) {
       console.error('❌ Erro ao excluir projeto:', err);
       console.error('❌ Error details:', {
@@ -939,6 +942,8 @@ export default function StudioPage() {
         message: err.message
       });
       toast.error('Erro ao excluir projeto: ' + (err.response?.data?.detail || err.message));
+      // Rollback optimistic update on failure
+      await fetchProjects();
     }
   };
 
