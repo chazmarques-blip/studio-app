@@ -17,6 +17,7 @@ __all__ = [
     "_get_settings", "_save_settings", "_get_project", "_save_project",
     "_update_project_field", "_add_milestone", "_cleanup_stale_storyboards",
     "_upload_to_storage", "_call_claude_async", "_call_claude_sync", "_parse_json",
+    "_llm_context",  # Binds upcoming LLM calls to tenant+project for token tracking
     "_analyze_avatars_with_vision", "_build_production_design", "_create_composite_avatar",
     "_ANTI_INSTRUCTIONS", "_extract_last_frame", "_generate_character_sheet",
     "_build_style_dna", "_validate_scene_continuity", "_apply_color_grading",
@@ -266,6 +267,7 @@ async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: i
                 )
                 text = response.choices[0].message.content
                 if text:
+                    _accumulate_token_usage(response)
                     return text
             except Exception as e:
                 last_error = e
@@ -279,6 +281,62 @@ async def _call_claude_async(system_prompt: str, user_prompt: str, max_tokens: i
                 break
     
     raise Exception(f"All LLM models failed: {last_error}")
+
+
+def _accumulate_token_usage(response) -> None:
+    """
+    Extract input/output tokens from a litellm response and accumulate them
+    onto the currently active_agent across ALL tenants (best-effort; fails silently).
+    Reads TENANT_ID + PROJECT_ID from contextvars set by _begin_llm_context().
+    """
+    try:
+        usage = getattr(response, "usage", None)
+        if not usage:
+            return
+        in_tok = int(getattr(usage, "prompt_tokens", 0) or 0)
+        out_tok = int(getattr(usage, "completion_tokens", 0) or 0)
+        if in_tok == 0 and out_tok == 0:
+            return
+        ctx_tenant = _LLM_CTX_TENANT.get()
+        ctx_project = _LLM_CTX_PROJECT.get()
+        if not ctx_tenant or not ctx_project:
+            return
+        settings, projects, project = _get_project(ctx_tenant, ctx_project)
+        if not project:
+            return
+        active = project.get("active_agent")
+        if not active:
+            return
+        active["input_tokens"] = int(active.get("input_tokens", 0)) + in_tok
+        active["output_tokens"] = int(active.get("output_tokens", 0)) + out_tok
+        project["active_agent"] = active
+        _save_project(ctx_tenant, settings, projects, flush_now=False)
+    except Exception as e:
+        logger.debug(f"token accumulation skipped: {e}")
+
+
+# Context vars set by `with _llm_context(tenant_id, project_id)` blocks so
+# _accumulate_token_usage knows where to charge the tokens.
+from contextvars import ContextVar
+_LLM_CTX_TENANT: ContextVar = ContextVar("_LLM_CTX_TENANT", default=None)
+_LLM_CTX_PROJECT: ContextVar = ContextVar("_LLM_CTX_PROJECT", default=None)
+
+
+class _llm_context:
+    """Context manager / decorator that binds upcoming _call_claude_* calls to a tenant+project for token tracking."""
+    def __init__(self, tenant_id: str, project_id: str):
+        self.tenant_id = tenant_id
+        self.project_id = project_id
+        self.t_tok = None
+        self.p_tok = None
+    def __enter__(self):
+        self.t_tok = _LLM_CTX_TENANT.set(self.tenant_id)
+        self.p_tok = _LLM_CTX_PROJECT.set(self.project_id)
+        return self
+    def __exit__(self, *exc):
+        _LLM_CTX_TENANT.reset(self.t_tok)
+        _LLM_CTX_PROJECT.reset(self.p_tok)
+        return False
 
 
 def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 4000, timeout_per_attempt: int = 300) -> str:
@@ -313,6 +371,7 @@ def _call_claude_sync(system_prompt: str, user_prompt: str, max_tokens: int = 40
                 text = response.choices[0].message.content
                 elapsed = _time.time() - t_start
                 if text:
+                    _accumulate_token_usage(response)
                     logger.info(f"LLM [{model_name}] responded in {elapsed:.1f}s ({len(text)} chars)")
                     return text
             except Exception as e:

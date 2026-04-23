@@ -40,6 +40,7 @@ export function ContinuityAuditModal({ open, onClose, projectId, mode = 'video' 
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
   const [running, setRunning] = useState(false);
+  const [autoFixing, setAutoFixing] = useState(false);
 
   const cfg = mode === 'book'
     ? {
@@ -91,6 +92,29 @@ export function ContinuityAuditModal({ open, onClose, projectId, mode = 'video' 
       toast.error(e.response?.data?.detail || 'Erro ao executar auditoria');
     } finally {
       setRunning(false);
+    }
+  };
+
+  const runAutoFix = async () => {
+    if (!window.confirm(
+      'Thelma Schoonmaker vai regenerar as cenas problemáticas automaticamente usando as issues como brief.\n\nContinuar?'
+    )) return;
+    setAutoFixing(true);
+    try {
+      const { data } = await axios.post(
+        `${API}/studio/projects/${projectId}/continuity-auto-fix`
+      );
+      if (data.status === 'processing') {
+        toast.success(`Auto-Fix iniciado! Regenerando ${data.target_scenes?.length || 0} cenas...`);
+      } else if (data.status === 'nothing_to_fix') {
+        toast.info('Nada a corrigir — score já está ok.');
+      } else {
+        toast.warning(data.message || 'Auto-Fix não mapeou cenas específicas');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Erro no Auto-Fix');
+    } finally {
+      setAutoFixing(false);
     }
   };
 
@@ -211,6 +235,18 @@ export function ContinuityAuditModal({ open, onClose, projectId, mode = 'video' 
                 {running ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
                 Re-auditar
               </button>
+              {mode === 'video' && (report.score || 0) < 85 && flatIssues.some((i) => ['high', 'medium'].includes(i.severity)) && (
+                <button
+                  onClick={runAutoFix}
+                  disabled={autoFixing}
+                  data-testid="continuity-auto-fix-btn"
+                  title="Regenera automaticamente as cenas problemáticas usando as issues como brief"
+                  className="shrink-0 h-8 px-3 rounded-lg bg-gradient-to-r from-violet-600 to-orange-500 text-white text-[11px] font-bold hover:brightness-110 transition inline-flex items-center gap-1 disabled:opacity-50"
+                >
+                  {autoFixing ? <Loader2 size={11} className="animate-spin" /> : <Shield size={11} />}
+                  {autoFixing ? 'Corrigindo…' : 'Auto-Fix'}
+                </button>
+              )}
             </div>
 
             {/* Issues list */}

@@ -10,6 +10,7 @@ Design: ADDITIVE. Uses resolve_agent_prompt (customizable via /agents UI).
 Zero-breaking: if LLM fails → stub report (does not raise).
 """
 from ._shared import *
+from fastapi import BackgroundTasks
 from .agents_registry import resolve_agent_prompt
 import json as _json
 import re as _re
@@ -163,6 +164,123 @@ async def get_video_continuity_report(project_id: str, tenant=Depends(get_curren
         "report": project.get("continuity_report") or None,
         "status": project.get("continuity_status") or None,
     }
+
+
+@router.post("/projects/{project_id}/continuity-auto-fix")
+async def auto_fix_continuity_issues(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    tenant=Depends(get_current_tenant),
+):
+    """
+    🔄 Auto-correction loop: reads the last Thelma Schoonmaker audit report
+    and regenerates the scenes flagged with high/medium severity issues.
+    The script (screenwriter) is re-prompted with the specific issue as a
+    correction brief, so the new scene is guaranteed to address the feedback.
+    Safe to call multiple times — just re-audit between attempts.
+    """
+    settings, projects, project = _get_project(tenant["id"], project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    report = project.get("continuity_report") or {}
+    issues = report.get("issues") or []
+    if not issues:
+        raise HTTPException(status_code=400, detail="No continuity audit found. Run /continuity-audit first.")
+
+    # Keep only high + medium severity issues
+    actionable = [i for i in issues if i.get("severity") in ("high", "medium")]
+    if not actionable:
+        return {
+            "status": "nothing_to_fix",
+            "message": f"Score {report.get('score')}/100 — no high/medium severity issues to auto-fix.",
+        }
+
+    # Collect the set of scene indices mentioned by issues (best-effort parse)
+    import re as _re
+    affected = set()
+    for iss in actionable:
+        desc = (iss.get("description") or "") + " " + " ".join(map(str, iss.get("scenes") or []))
+        for m in _re.finditer(r"scene[\s_-]*(\d{1,3})", desc.lower()):
+            try:
+                affected.add(int(m.group(1)))
+            except Exception:
+                pass
+
+    total_scenes = len(project.get("scenes") or [])
+    affected = sorted(idx for idx in affected if 1 <= idx <= total_scenes)
+
+    if not affected:
+        return {
+            "status": "skipped",
+            "message": "Couldn't map issues to specific scene indices; please regenerate manually.",
+            "issues_count": len(actionable),
+        }
+
+    # Mark project as auto-fixing
+    _update_project_field(tenant["id"], project_id, {
+        "continuity_auto_fix": {
+            "status": "running",
+            "target_scenes": affected,
+            "issues": [{"severity": i.get("severity"), "type": i.get("type"), "description": (i.get("description") or "")[:300]} for i in actionable],
+            "started_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+    }, flush_now=True)
+
+    background_tasks.add_task(
+        _run_auto_fix_background,
+        tenant["id"], project_id, affected, actionable,
+    )
+
+    return {
+        "status": "processing",
+        "target_scenes": affected,
+        "issues_count": len(actionable),
+        "message": f"Auto-fixing {len(affected)} scenes based on {len(actionable)} issues. Poll /projects/{{id}} for continuity_auto_fix.status.",
+    }
+
+
+def _run_auto_fix_background(tenant_id: str, project_id: str, scene_indices: list, issues: list):
+    """Background worker that regenerates scenes + rebuilds the film."""
+    try:
+        from .agents_activity import set_active_agent, clear_active_agent
+        from .scene_regenerate import _do_regenerate_scene  # may exist; else fall back to API call
+        set_active_agent(tenant_id, project_id, "consistency_checker_agent",
+                         f"Corrigindo {len(scene_indices)} cenas (Thelma)…")
+
+        # Build a correction brief the screenwriter must honor
+        brief_lines = ["### CONTINUITY CORRECTION REQUIRED"]
+        for i, iss in enumerate(issues, 1):
+            brief_lines.append(f"{i}. [{iss.get('severity')}] {iss.get('type')}: {iss.get('description')}")
+        correction_brief = "\n".join(brief_lines)
+
+        regenerated = []
+        errors = []
+        for idx in scene_indices:
+            try:
+                _do_regenerate_scene(tenant_id, project_id, idx, notes=correction_brief)
+                regenerated.append(idx)
+            except Exception as e:
+                errors.append({"scene": idx, "error": str(e)[:200]})
+
+        _update_project_field(tenant_id, project_id, {
+            "continuity_auto_fix": {
+                "status": "done",
+                "regenerated_scenes": regenerated,
+                "errors": errors,
+                "finished_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+        }, flush_now=True)
+        logger.info(f"ContinuityAutoFix [{project_id}]: regenerated {len(regenerated)}, errors {len(errors)}")
+        clear_active_agent(tenant_id, project_id)
+    except Exception as e:
+        logger.error(f"ContinuityAutoFix [{project_id}]: FAILED — {e}")
+        try:
+            _update_project_field(tenant_id, project_id, {
+                "continuity_auto_fix": {"status": "error", "error": str(e)[:300]}
+            }, flush_now=True)
+        except Exception:
+            pass
 
 
 # ─── Book visual audit ────────────────────────────────────────

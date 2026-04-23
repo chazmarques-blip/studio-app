@@ -210,11 +210,25 @@ def _update_scene_status(tenant_id: str, project_id: str, scene_num: int, status
         scene_status = agent_status.get("scene_status", {})
         scene_status[str(scene_num)] = status
         videos_done = sum(1 for v in scene_status.values() if v == "done")
+        # Progress percent: 95% during generation (last 5% reserved for concat+upload)
+        progress_pct = int(min(95, round((videos_done / total) * 95))) if total else 0
+        # Human-readable phase detail
+        phase_map = {
+            "directing": "Diretor planejando",
+            "generating_video": f"Gerando vídeo da cena {scene_num}",
+            "concatenating": "Concatenando filme final",
+            "done": f"Cena {scene_num} pronta",
+            "error": f"Erro na cena {scene_num}",
+        }
+        phase_detail = phase_map.get(status, status)
         agent_status.update({
             "current_scene": scene_num, "total_scenes": total,
             "phase": status if status in ("directing", "generating_video", "concatenating") else agent_status.get("phase", "running"),
             "scene_status": scene_status,
             "videos_done": videos_done,
+            "progress_percent": progress_pct,
+            "phase_detail": phase_detail,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         })
         project["agent_status"] = agent_status
         _save_project(tenant_id, settings, projects)
@@ -1463,7 +1477,10 @@ VISUAL DIRECTION: {visual_direction}
                                 logger.warning(f"Studio [{project_id}]: character_ids lookup failed (non-fatal): {_ce}")
 
                             # Cinema quality → Sora 2 Pro HD (1792x1024)
-                            _prod_q = project.get("production_quality", "fast")
+                            # Default: ON for films >= 3 scenes (unless user explicitly set "fast")
+                            _prod_q = project.get("production_quality")
+                            if not _prod_q:
+                                _prod_q = "cinema" if total >= 3 else "fast"
                             if _prod_q == "cinema":
                                 _sora_model = "sora-2-pro"
                                 _sora_size = "1792x1024"
@@ -1822,7 +1839,11 @@ VISUAL DIRECTION: {visual_direction}
             })
             logger.info(f"Studio [{project_id}]: Concatenating {len(successful_videos)} videos...")
             try:
-                _cinema = project.get("production_quality", "fast") == "cinema"
+                # Default: cinema ON for films >= 3 scenes (unless user explicitly set "fast")
+                _quality = project.get("production_quality")
+                if not _quality:
+                    _quality = "cinema" if len(successful_videos) >= 3 else "fast"
+                _cinema = _quality == "cinema"
                 final_url = _concatenate_videos(successful_videos, project_id, cinema_quality=_cinema)
             except Exception as ce:
                 logger.error(f"Studio [{project_id}]: Concat error: {ce}")
@@ -1954,10 +1975,13 @@ def _concatenate_videos(scene_videos: list, project_id: str, crossfade_duration:
             _crf = "18" if cinema_quality else "23"
             _preset = "medium" if cinema_quality else "fast"
             _abr = "256k" if cinema_quality else "128k"
+            # Loudness normalization (broadcast standard -16 LUFS, true peak -1.5 dBTP)
+            _af_loudnorm = "loudnorm=I=-16:TP=-1.5:LRA=11"
 
             cmd_xfade = ["ffmpeg", "-y"] + inputs + [
                 "-filter_complex", filter_complex,
                 "-map", "[vout]", "-map", "[aout]",
+                "-af", _af_loudnorm,
                 "-c:v", "libx264", "-preset", _preset, "-crf", _crf,
                 "-pix_fmt", "yuv420p",
                 "-c:a", "aac", "-b:a", _abr,
@@ -3785,7 +3809,11 @@ def _rebuild_film_background(tenant_id: str, project_id: str):
         
         logger.info(f"RebuildFilm [{project_id}]: Concatenating {len(scene_videos)} scenes with crossfade")
         
-        _cinema = project.get("production_quality", "fast") == "cinema"
+        # Default: cinema ON for films >= 3 scenes (unless user explicitly set "fast")
+        _quality = project.get("production_quality")
+        if not _quality:
+            _quality = "cinema" if len(scene_videos) >= 3 else "fast"
+        _cinema = _quality == "cinema"
         final_url = _concatenate_videos(scene_videos, project_id, crossfade_duration=1.0, cinema_quality=_cinema)
         
         if final_url:

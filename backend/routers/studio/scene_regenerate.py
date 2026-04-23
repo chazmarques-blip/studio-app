@@ -166,3 +166,85 @@ async def regenerate_scene(
     except Exception as e:
         logger.error(f"SceneRegenerate [{project_id}]: Failed - {e}", exc_info=True)
         raise HTTPException(500, f"Failed to regenerate scene: {str(e)}")
+
+
+def _do_regenerate_scene(
+    tenant_id: str,
+    project_id: str,
+    scene_number: int,
+    notes: Optional[str] = None,
+) -> dict:
+    """
+    In-process regeneration helper, callable from background tasks (e.g. the
+    continuity auto-fix). Applies `notes` as appended context to the scene
+    description so the regenerated frames address the feedback.
+    """
+    settings = _get_settings(tenant_id)
+    projects = settings.get("studio_projects", [])
+    project = _get_project(projects, project_id)
+    if not project:
+        raise RuntimeError(f"Project {project_id} not found")
+
+    scenes = project.get("scenes", [])
+    target = None
+    target_idx = None
+    for idx, s in enumerate(scenes):
+        if s.get("scene_number") == scene_number:
+            target = s
+            target_idx = idx
+            break
+    if not target:
+        raise RuntimeError(f"Scene {scene_number} not found")
+
+    if notes:
+        desc = target.get("description", "") or ""
+        target["description"] = f"{desc}\n\n### CORRECTION NOTES\n{notes}".strip()
+        scenes[target_idx] = target
+        project["scenes"] = scenes
+
+    # Remove old panels for this scene
+    old_panels = project.get("storyboard_panels", [])
+    project["storyboard_panels"] = [p for p in old_panels if p.get("scene_number") != scene_number]
+
+    try:
+        from core.storyboard import _generate_all_frames_for_scene
+        characters = project.get("characters", [])
+        char_avatars = {c["name"]: c.get("avatar_url") for c in characters if c.get("avatar_url")}
+        character_bible = {c["name"]: c.get("description", "") for c in characters}
+        identity_cards = project.get("identity_cards", {})
+        style_dna = project.get("style_dna", "Pixar 3D animation style")
+        lang = project.get("language", "pt")
+
+        frames = _generate_all_frames_for_scene(
+            scene=target, scene_num=scene_number, project_id=project_id,
+            char_avatars=char_avatars, avatar_cache={}, character_bible=character_bible,
+            identity_cards=identity_cards, style_dna=style_dna,
+            shot_briefs=None, lang=lang, enable_validation=False,
+        )
+
+        new_panel = {
+            "scene_number": scene_number,
+            "title": target.get("title", ""),
+            "description": target.get("description", ""),
+            "dialogue": target.get("dialogue", ""),
+            "emotion": target.get("emotion", ""),
+            "image_url": frames[0]["url"] if frames and frames[0].get("url") else None,
+            "frames": frames,
+            "status": "done" if frames else "error",
+        }
+        project["storyboard_panels"].append(new_panel)
+        project["storyboard_panels"].sort(key=lambda x: x.get("scene_number", 0))
+
+        # Mark video output for this scene as needing regeneration
+        for output in project.get("outputs", []):
+            if output.get("scene_number") == scene_number:
+                output["needs_regeneration"] = True
+                output["status"] = "pending"
+
+        _add_milestone(project, "scene_regenerated", f"Scene {scene_number} auto-regenerated via continuity fix")
+        _save_project(tenant_id, settings, projects, flush_now=True)
+
+        return {"scene_number": scene_number, "frames_generated": len(frames)}
+    except Exception as e:
+        logger.error(f"_do_regenerate_scene [{project_id}] scene {scene_number}: {e}", exc_info=True)
+        raise

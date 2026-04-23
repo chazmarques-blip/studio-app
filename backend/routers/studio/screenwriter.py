@@ -506,6 +506,43 @@ RULES FOR PERSONALITY:
 - Body language in descriptions should match personality (e.g. hyper character = always moving)
 """
 
+        # ── 🔒 CHARACTER BIBLE ENFORCEMENT (P0 #2) ──
+        # Hard-lock physical descriptions so screenwriter never drifts (Jonas = coelho
+        # bege in scene 1 and carneiro in scene 27). Feeds the Bible inline in the
+        # system prompt with STRICT language that makes deviations a JSON validation error.
+        bible_lines = []
+        for c in characters_list:
+            name = c.get("name")
+            if not name:
+                continue
+            species = c.get("species") or c.get("type") or ""
+            visual = c.get("description") or c.get("visual_description") or ""
+            outfit = c.get("outfit") or c.get("clothing") or ""
+            colors = c.get("palette") or c.get("colors") or ""
+            age = c.get("age") or ""
+            parts = []
+            if species: parts.append(f"species: {species}")
+            if visual: parts.append(f"look: {visual[:200]}")
+            if outfit: parts.append(f"outfit: {outfit[:100]}")
+            if colors: parts.append(f"colors: {colors[:100]}")
+            if age: parts.append(f"age: {age}")
+            if parts:
+                bible_lines.append(f"- {name} → " + " | ".join(parts))
+        character_bible_ctx = ""
+        if bible_lines:
+            character_bible_ctx = f"""
+
+🔒 CHARACTER BIBLE (IMMUTABLE — every scene MUST match this exact description):
+{chr(10).join(bible_lines)}
+
+RULES (VIOLATION = REJECTED OUTPUT):
+- NEVER change species, colors, outfit, or age across scenes.
+- If a character wears a tunic in scene 4, they wear the same tunic in scene 27 (unless plot explicitly shows a change).
+- Reference the Bible description when writing visual_prompt for each scene.
+- If you invent details (e.g. "messy wool"), they MUST be additions that don't contradict the Bible.
+- This rule overrides any creative freedom — the Bible is the ground truth.
+"""
+
         # Detect if project already has scenes (continuation vs new screenplay)
         existing_scenes = project.get("scenes", [])
         is_continuation = len(existing_scenes) > 0
@@ -524,6 +561,7 @@ EXISTING SCREENPLAY (already written — DO NOT rewrite these, only ADD new scen
 {existing_summary}
 
 {character_library_instructions}
+{character_bible_ctx}
 {personality_ctx}
 The user now says: {message}
 {audio_instruction}
@@ -543,6 +581,7 @@ CONTINUATION RULES:
 {history_text}
 
 {character_library_instructions}
+{character_bible_ctx}
 {personality_ctx}
 Current request: {message}
 {audio_instruction}
@@ -569,7 +608,8 @@ Create the screenplay. Generate as many scenes and characters as the story NEEDS
         except Exception:
             pass
 
-        result = _call_claude_sync(system, user_prompt, max_tokens=8000)
+        with _llm_context(tenant_id, project_id):
+            result = _call_claude_sync(system, user_prompt, max_tokens=8000)
         parsed = _parse_json(result)
 
         if not parsed:

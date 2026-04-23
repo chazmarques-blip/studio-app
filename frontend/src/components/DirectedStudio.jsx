@@ -3502,11 +3502,28 @@ export const DirectedStudio = memo(function DirectedStudio({
                   {!agentStatus.phase && !progressMessage && (lang === 'pt' ? 'Preparando produção...' : 'Preparing production...')}
                 </span>
                 <span className="text-orange-600 font-semibold">
-                  {agentStatus.videos_done !== undefined && agentStatus.videos_done > 0
-                    ? `${agentStatus.videos_done}/${agentStatus.total_frames || agentStatus.total_scenes || scenes.length} clips`
-                    : ''}
+                  {agentStatus.progress_percent !== undefined && agentStatus.progress_percent > 0
+                    ? `${agentStatus.progress_percent}%`
+                    : (agentStatus.videos_done !== undefined && agentStatus.videos_done > 0
+                      ? `${agentStatus.videos_done}/${agentStatus.total_frames || agentStatus.total_scenes || scenes.length} clips`
+                      : '')}
                 </span>
               </div>
+
+              {/* Global progress bar (NEW: backend exposes progress_percent) */}
+              {agentStatus.progress_percent !== undefined && agentStatus.progress_percent > 0 && (
+                <div className="mb-2" data-testid="global-progress-bar">
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-orange-500 transition-all duration-700 ease-out"
+                      style={{ width: `${agentStatus.progress_percent}%` }}
+                    />
+                  </div>
+                  {agentStatus.phase_detail && (
+                    <div className="mt-0.5 text-[9px] text-gray-500 italic">{agentStatus.phase_detail}</div>
+                  )}
+                </div>
+              )}
 
               {/* Kling AI: Frame-level progress bar (30 clips) */}
               {videoEngine === 'kling' && agentStatus.total_frames > 0 && (
