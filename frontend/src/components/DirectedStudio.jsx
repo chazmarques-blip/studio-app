@@ -19,6 +19,7 @@ import { AvatarLibraryModalV2 } from './pipeline/AvatarLibraryModalV2';
 import { SynergyBadge } from './pipeline/SynergyBadge';
 import { ContinuityAuditModal } from './pipeline/ContinuityAuditModal';
 import { PipelineTrackerInline } from './pipeline/PipelineTrackerInline';
+import VoiceStatusPanel from './pipeline/VoiceStatusPanel';
 import { ActiveAgentIndicator } from './pipeline/ActiveAgentIndicator';
 import { MultiFormatExport } from './pipeline/MultiFormatExport';
 import { SortableSceneWrapper } from './pipeline/SortableSceneWrapper';
@@ -2664,6 +2665,13 @@ export const DirectedStudio = memo(function DirectedStudio({
           <p className="text-xs text-gray-500">
             {lang === 'pt' ? 'Crie, edite ou importe personagens da biblioteca' : 'Create, edit or import characters from library'}
           </p>
+
+          {/* Voice Status — Sora Character Lock + ElevenLabs fallback */}
+          {characters.length > 0 && projectId && (
+            <div className="rounded-xl border border-violet-200 bg-white p-3 mb-2">
+              <VoiceStatusPanel projectId={projectId} refreshKey={characters.length} />
+            </div>
+          )}
 
           {/* Auto-generation progress overlay */}
           {autoGenCharacters && charGenProgress.status === 'starting' && (

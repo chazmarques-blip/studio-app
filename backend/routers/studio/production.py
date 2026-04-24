@@ -269,8 +269,111 @@ def _save_scene_video(tenant_id: str, project_id: str, scene_num: int, video_url
             _add_milestone(project, f"video_scene_{scene_num}", f"Vídeo cena {scene_num} gerado")
             _save_project(tenant_id, settings, projects, flush_now=True)
         _update_scene_status(tenant_id, project_id, scene_num, "done", total)
+
+        # ── Auto-register Sora character_ids (voice lock) ──
+        # After a successful Sora scene, register any characters appearing in it
+        # that don't yet have a sora_character_id. Runs in background thread so
+        # it never blocks the production pipeline.
+        try:
+            if project.get("video_engine", "kling") == "sora":
+                import threading
+                threading.Thread(
+                    target=_auto_register_sora_characters_for_scene,
+                    args=(tenant_id, project_id, scene_num),
+                    daemon=True,
+                ).start()
+        except Exception as _rce:
+            logger.debug(f"auto-register thread launch failed (non-fatal): {_rce}")
     except Exception as e:
         logger.warning(f"_save_scene_video scene {scene_num}: {e}")
+
+
+def _auto_register_sora_characters_for_scene(tenant_id: str, project_id: str, scene_num: int):
+    """Register Sora 2 character_ids for every character appearing in a just-completed scene
+    that doesn't yet have one. Uses the scene's own video as the anchor.
+
+    Idempotent and safe to call repeatedly — skips characters already registered.
+    """
+    try:
+        from .sora_characters import _register_sora_character_http, _default_timestamps_for_duration
+        settings, projects, project = _get_project(tenant_id, project_id)
+        if not project:
+            return
+
+        scenes = project.get("scenes", []) or []
+        characters = project.get("characters", []) or []
+        scene = next((s for s in scenes if s.get("scene_number") == scene_num), None)
+        if not scene or not scene.get("video_url"):
+            return
+
+        # Names of characters present in this scene
+        chars_in_scene = (
+            scene.get("characters_in_scene")
+            or scene.get("characters")
+            or []
+        )
+        names_in_scene = set()
+        for c in chars_in_scene:
+            if isinstance(c, dict):
+                nm = str(c.get("name", "")).strip().lower()
+            elif isinstance(c, str):
+                nm = c.strip().lower()
+            else:
+                nm = ""
+            if nm:
+                names_in_scene.add(nm)
+
+        if not names_in_scene:
+            return
+
+        timestamps = _default_timestamps_for_duration(scene.get("duration") or 12)
+        video_url = scene["video_url"]
+
+        any_registered = False
+        # Errors that should NOT be retried automatically (they won't resolve on retry):
+        STICKY_ERRORS = {"moderation_rejected", "face_detected", "openai_key_missing"}
+        for char in characters:
+            if not isinstance(char, dict):
+                continue
+            name = str(char.get("name", "")).strip()
+            if not name or char.get("sora_character_id"):
+                continue
+            if name.lower() not in names_in_scene:
+                continue
+            # Skip if previously failed with a sticky error — user must manually retry
+            if char.get("sora_character_lock_error") in STICKY_ERRORS:
+                continue
+
+            char_id, err_reason = _register_sora_character_http(
+                openai_key=OPENAI_API_KEY,
+                video_url=video_url,
+                timestamps=timestamps,
+                label=name,
+            )
+            if not char_id:
+                # Persist the failure reason so UI can show it (and to avoid
+                # pointlessly retrying moderation-rejected characters every scene)
+                char["sora_character_lock_error"] = err_reason
+                char["sora_character_lock_attempted_at"] = datetime.now(timezone.utc).isoformat()
+                any_registered = True  # We still persist the error
+                continue
+
+            char["sora_character_id"] = char_id
+            char["sora_character_anchor_scene"] = scene_num
+            char["sora_character_timestamps"] = timestamps
+            char["sora_character_locked_at"] = datetime.now(timezone.utc).isoformat()
+            char.pop("sora_character_lock_error", None)
+            char.pop("sora_character_lock_attempted_at", None)
+            any_registered = True
+            logger.info(
+                f"Studio [{project_id}]: 🔒 Voice locked — '{name}' anchored to scene {scene_num} "
+                f"(character_id={char_id[:12]}…)"
+            )
+
+        if any_registered:
+            _update_project_field(tenant_id, project_id, {"characters": characters})
+    except Exception as e:
+        logger.warning(f"_auto_register_sora_characters_for_scene {project_id}/{scene_num}: {e}")
 
 
 def _run_multi_scene_production(tenant_id: str, project_id: str, character_avatars: dict = None):
